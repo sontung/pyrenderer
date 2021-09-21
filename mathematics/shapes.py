@@ -5,7 +5,7 @@ from .affine_transformation import make_transformation_matrix
 
 
 class Quad:
-    def __init__(self, trans_mat):
+    def __init__(self, trans_mat, bsdf):
         default_vertices = np.array([
             [-0.5, 0, -0.5],
             [0.5, 0, -0.5],
@@ -23,13 +23,14 @@ class Quad:
         self.mesh.apply_transform(self.trans_mat)
         self.vertices = self.mesh.vertices
         self.faces = self.mesh.faces
+        self.bsdf = bsdf
 
     def visualize(self):
         self.mesh.show()
 
 
 class Cube:
-    def __init__(self, trans_mat):
+    def __init__(self, trans_mat, bsdf):
         default_vertices = np.array([
             [-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, -0.5, -0.5],
             [-0.5, 0.5, 0.5], [-0.5, 0.5, -0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5],
@@ -59,8 +60,8 @@ class Cube:
 
         self.mesh.apply_transform(self.trans_mat)
         self.vertices = self.mesh.vertices
-
         self.faces = self.mesh.faces
+        self.bsdf = bsdf
 
     def visualize(self):
         self.mesh.show()
