@@ -1,11 +1,12 @@
 import numpy as np
 import trimesh
 import sys
+from .intersection import triangle_ray_intersection
 from .affine_transformation import make_transformation_matrix
 
 
 class Quad:
-    def __init__(self, trans_mat):
+    def __init__(self, trans_mat, bsdf):
         default_vertices = np.array([
             [-0.5, 0, -0.5],
             [0.5, 0, -0.5],
@@ -23,13 +24,26 @@ class Quad:
         self.mesh.apply_transform(self.trans_mat)
         self.vertices = self.mesh.vertices
         self.faces = self.mesh.faces
+        self.bsdf = bsdf
 
     def visualize(self):
         self.mesh.show()
 
+    def hit(self, ray):
+        ret = {"origin": ray.position, "hit": False, "t": 0.0,
+               "position": np.array([0.0, 0.0, 0.0])}
+        for i in range(self.faces.shape[0]):
+            triangle = self.faces[i]
+            ret2 = triangle_ray_intersection([self.vertices[triangle[0]],
+                                              self.vertices[triangle[2]],
+                                              self.vertices[triangle[1]]], ray)
+            if ret2["hit"] and ret2["t"] < ret["t"]:
+                ret = ret2
+        return ret
+
 
 class Cube:
-    def __init__(self, trans_mat):
+    def __init__(self, trans_mat, bsdf):
         default_vertices = np.array([
             [-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, -0.5, -0.5],
             [-0.5, 0.5, 0.5], [-0.5, 0.5, -0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5],
@@ -59,11 +73,23 @@ class Cube:
 
         self.mesh.apply_transform(self.trans_mat)
         self.vertices = self.mesh.vertices
-
         self.faces = self.mesh.faces
+        self.bsdf = bsdf
 
     def visualize(self):
         self.mesh.show()
+
+    def hit(self, ray):
+        ret = {"origin": ray.position, "hit": False, "t": 0.0,
+               "position": np.array([0.0, 0.0, 0.0])}
+        for i in range(self.faces.shape[0]):
+            triangle = self.faces[i]
+            ret2 = triangle_ray_intersection([self.vertices[triangle[0]],
+                                              self.vertices[triangle[2]],
+                                              self.vertices[triangle[1]]], ray)
+            if ret2["hit"] and ret2["t"] < ret["t"]:
+                ret = ret2
+        return ret
 
 
 if __name__ == '__main__':
