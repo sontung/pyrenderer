@@ -28,6 +28,9 @@ class Quad:
     def visualize(self):
         self.mesh.show()
 
+    def hit(self, ray):
+        return
+
 
 class Cube:
     def __init__(self, trans_mat, bsdf):
