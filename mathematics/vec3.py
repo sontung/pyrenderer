@@ -1,4 +1,5 @@
 from math import sqrt
+import numpy as np
 
 
 def norm_squared(vector):
@@ -12,3 +13,9 @@ def norm(vector):
 def normalize_vector(vector):
     n = norm(vector)
     return vector/n
+
+
+def to_homogeneous_vector(vector):
+    res = np.ones((4,), np.float32)
+    res[:3] = vector
+    return res

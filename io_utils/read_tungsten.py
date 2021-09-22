@@ -1,6 +1,7 @@
 import json
 from core.scene import Scene
 from core.bsdf import BSDF
+from core.camera import Camera
 from mathematics.shapes import Quad, Cube
 from mathematics.affine_transformation import make_transformation_matrix
 
@@ -13,10 +14,19 @@ PRIM_TYPES = {
 def process_primitives(data):
     a_scene = Scene()
     name2bsdf = {}
+
+    # read camera
+    a_camera = Camera(data["camera"]["transform"]["position"],
+                      data["camera"]["transform"]["look_at"],
+                      data["camera"]["transform"]["up"],
+                      data["camera"]["resolution"],
+                      fov=data["camera"]["fov"])
+
+    # read bsdfs
     for info_bsdf in data["bsdfs"]:
-        if info_bsdf["type"] == "null":
-            continue
         name2bsdf[info_bsdf["name"]] = BSDF(info_bsdf)
+
+    # read primitives
     for info in data['primitives']:
         trans_mat = make_transformation_matrix(info["transform"])
         if info["type"] not in PRIM_TYPES:
@@ -24,15 +34,14 @@ def process_primitives(data):
             continue
         prim = PRIM_TYPES[info["type"]](trans_mat, name2bsdf[info["bsdf"]])
         a_scene.add_primitive(prim)
-    a_scene.visualize()
-    return a_scene
+    # a_scene.visualize()
+    return a_scene, a_camera
 
 
 def read_file(filename):
     with open(filename) as json_file:
         data = json.load(json_file)
-        process_primitives(data)
-    return
+        return process_primitives(data)
 
 
 if __name__ == '__main__':

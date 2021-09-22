@@ -1,6 +1,7 @@
 import numpy as np
 import trimesh
 import sys
+from .intersection import triangle_ray_intersection
 from .affine_transformation import make_transformation_matrix
 
 
@@ -29,7 +30,16 @@ class Quad:
         self.mesh.show()
 
     def hit(self, ray):
-        return
+        ret = {"origin": ray.position, "hit": False, "t": 0.0,
+               "position": np.array([0.0, 0.0, 0.0])}
+        for i in range(self.faces.shape[0]):
+            triangle = self.faces[i]
+            ret2 = triangle_ray_intersection([self.vertices[triangle[0]],
+                                              self.vertices[triangle[2]],
+                                              self.vertices[triangle[1]]], ray)
+            if ret2["hit"] and ret2["t"] < ret["t"]:
+                ret = ret2
+        return ret
 
 
 class Cube:
@@ -68,6 +78,18 @@ class Cube:
 
     def visualize(self):
         self.mesh.show()
+
+    def hit(self, ray):
+        ret = {"origin": ray.position, "hit": False, "t": 0.0,
+               "position": np.array([0.0, 0.0, 0.0])}
+        for i in range(self.faces.shape[0]):
+            triangle = self.faces[i]
+            ret2 = triangle_ray_intersection([self.vertices[triangle[0]],
+                                              self.vertices[triangle[2]],
+                                              self.vertices[triangle[1]]], ray)
+            if ret2["hit"] and ret2["t"] < ret["t"]:
+                ret = ret2
+        return ret
 
 
 if __name__ == '__main__':

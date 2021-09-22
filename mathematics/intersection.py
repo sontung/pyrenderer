@@ -11,7 +11,6 @@ def triangle_ray_intersection(vertices, ray):
 
     ret = {"origin": ray.position, "hit": False, "t": 0.0,
            "position": np.array([0.0, 0.0, 0.0])}
-    ret.origin = ray.point
 
     s = ray.position-v_0
     cross_e1_d = np.cross(e1, ray.dir)
@@ -27,7 +26,7 @@ def triangle_ray_intersection(vertices, ray):
         return ret
 
     t = -f*dot_s_e2_e1
-    if t >= ray.dist_bounds.y or t <= EPS:
+    if t >= ray.bounds[1] or t <= EPS:
         return ret
 
     u = -f*np.dot(cross_s_e2, ray.dir)
@@ -38,8 +37,8 @@ def triangle_ray_intersection(vertices, ray):
         return ret
 
     ray.bounds[1] = t
-    ret.distance = t
-    ret.position = ray.point+t*ray.dir
-    ret.hit = True
-    ret.normal = (1.0-u-v)*v_0.normal+u*v_1.normal+v*v_2.normal
+    ret["distance"] = t
+    ret["position"] = ray.position+t*ray.dir
+    ret["hit"] = True
+    # ret.normal = (1.0-u-v)*v_0.normal+u*v_1.normal+v*v_2.normal
     return ret

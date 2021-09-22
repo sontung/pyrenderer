@@ -19,9 +19,17 @@ class Scene:
             self.vertices = np.vstack([self.vertices, prim.vertices])
             self.faces = np.vstack([self.faces, prim.faces+increment])
 
+    def hit(self, ray):
+        ret = {"origin": ray.position, "hit": False, "t": 0.0,
+               "position": np.array([0.0, 0.0, 0.0])}
+        for prim in self.primitives:
+            ret2 = prim.hit(ray)
+            if ret2["hit"] and ret2["t"] < ret["t"]:
+                ret = ret2
+        return ret
+
     def visualize(self):
         self.mesh = trimesh.Trimesh(vertices=self.vertices,
                                     faces=self.faces,
                                     process=False)
-        print()
         self.mesh.show()
