@@ -16,6 +16,6 @@ def normalize_vector(vector):
 
 
 def to_homogeneous_vector(vector):
-    res = np.ones((4,), np.float32)
+    res = np.ones((4,), np.float64)
     res[:3] = vector
     return res

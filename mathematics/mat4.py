@@ -12,7 +12,7 @@ def rotate_to(vector):
     """
     vector = normalize_vector(vector)
     if abs(vector[1]-1.0) < EPS:
-        return np.identity(4, np.float32)
+        return np.identity(4, np.float64)
     elif abs(vector[1]+1.0) < EPS:
         return np.array([[1.0, 0.0, 0.0, 0.0],
                          [0.0, -1.0, 0.0, 0.0],

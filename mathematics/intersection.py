@@ -9,18 +9,20 @@ def triangle_ray_intersection(vertices, ray):
     e1 = v_1-v_0
     e2 = v_2-v_0
 
-    ret = {"origin": ray.position, "hit": False, "t": 0.0,
-           "position": np.array([0.0, 0.0, 0.0])}
-
+    ret = {"origin": ray.position, "hit": False, "t": 0.0, "position": np.array([0.0, 0.0, 0.0])}
     s = ray.position-v_0
-    cross_e1_d = np.cross(e1, ray.dir)
+
+    cross_e1_d, cross_s_e2 = np.cross([e1, s], [ray.dir, e2])
 
     det = np.dot(cross_e1_d, e2)
     if np.abs(det) <= EPS:
         return ret
 
     f = 1.0/det
-    cross_s_e2 = np.cross(s, e2)
+
+    # cross_e1_d = np.cross(e1, ray.dir)
+    # cross_s_e2 = np.cross(s, e2)
+
     dot_s_e2_e1 = np.dot(cross_s_e2, e1)
     if np.abs(dot_s_e2_e1) <= EPS:
         return ret

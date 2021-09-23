@@ -2,7 +2,6 @@ from pyrr.matrix44 import create_look_at
 from random import random
 from .ray import Ray
 from mathematics.vec3 import normalize_vector, to_homogeneous_vector
-from mathematics.constants import MAX_F
 from math import tan, radians
 import numpy as np
 
@@ -50,4 +49,4 @@ class Camera:
 
         final_ray = ray_dir_world_space - ray_origin_world_space
         final_ray = normalize_vector(final_ray)
-        return Ray(ray_origin_world_space[:3], final_ray[:3], 8, np.array([0.0, MAX_F]))
+        return Ray(ray_origin_world_space[:3], final_ray[:3], 8)
