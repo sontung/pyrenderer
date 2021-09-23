@@ -13,6 +13,13 @@ class BVHnode:
         self.box = BBox(None, None)
 
 
+class Bucket:
+    def __init__(self, bbox=None, prims_idx_vec=None):
+        self.bbox = bbox
+        self.bounds_for_centroids = [0.0, 0.0]
+        self.prims_idx_vec = prims_idx_vec
+
+
 class BVH:
     def __init__(self, max_leaf_size=1):
         self.bounds = BBox(None, None)
@@ -26,6 +33,69 @@ class BVH:
         a_node = BVHnode(0, 0, -1, 0, 0)
         self.nodes.append(a_node)
         return len(self.nodes) - 1
+
+    def compute_bucket_index(self, buckets, prim_idx, dim):
+        for i in range(len(buckets)):
+            if self.primitive_centroids[prim_idx][dim] >= buckets[i].bounds_for_centroids[0]:
+                if self.primitive_centroids[prim_idx][dim] <= buckets[i].bounds_for_centroids[1]:
+                    return i
+        return len(buckets)
+
+    def compute_partition_cost(self, buckets, partition_idx, nb_buckets, bound_area):
+        sa1 = 0.0
+        sa2 = 0.0
+        box1 = BBox()
+        box2 = BBox()
+        for i1 in range(partition_idx):
+            box1.enclose(buckets[i1].bbox)
+            sa1 += len(buckets[i1].prims_idx_vec)
+        for i2 in range(partition_idx, nb_buckets):
+            box2.enclose(buckets[i2].bbox)
+            sa2 += len(buckets[i2].prims_idx_vec)
+
+        if sa1 < 1 or sa2 < 1:
+            print("[WARNING] empty bvh split")
+        cost1 = box1.surface_area()*sa1
+        cost2 = box2.surface_area()*sa2
+        total_cost = (cost2+cost1)/bound_area+1.0
+        return total_cost
+
+    def sah_heuristic(self, parent_index, dim, nb_buckets, start, size,
+                      global_bounds, centroid_bounds):
+        buckets = [Bucket() for _ in range(nb_buckets)]
+        max_centroid = centroid_bounds.max_coord[dim]
+        min_centroid = centroid_bounds.min_coord[dim]
+        max_centroid += 0.000001
+        min_centroid -= 0.000001
+        step = (max_centroid - min_centroid) / float(nb_buckets)
+
+        for i in range(nb_buckets):
+            buckets[i].bounds_for_centroids[0] = min_centroid+step*i
+            buckets[i].bounds_for_centroids[1] = min_centroid+step*(i+1)
+
+        # compute bucket for each primitive
+        for i in range(size):
+            prim_id = self.nodes[parent_index].prims_idx_vec[i]
+            bucket_id = self.compute_bucket_index(buckets, prim_id, dim)
+            assert bucket_id != nb_buckets
+            buckets[bucket_id].bbox.enclose(self.primitives[prim_id].bounds)
+            buckets[bucket_id].prims_idx_vec.append(prim_id)
+
+        # compute the SAH cost
+        global_bound_area = global_bounds.surface_area()
+        min_cost = self.compute_partition_cost(buckets, 1, nb_buckets, global_bound_area)
+        best_pid = 1
+        for pid in range(2, nb_buckets):
+            cost = self.compute_partition_cost(buckets, pid, nb_buckets, global_bound_area)
+            if cost < min_cost:
+                min_cost = cost
+                best_pid = pid
+        res = {
+            "best_split": best_pid,
+            "best_cost": min_cost,
+            "buckets": buckets
+        }
+        return res
 
     def build_helper(self, parent_index):
         start = self.nodes[parent_index].start
