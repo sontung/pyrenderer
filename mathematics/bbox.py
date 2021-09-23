@@ -1,23 +1,45 @@
 import numpy as np
-from .constants import GAMMA2_3
+from .constants import GAMMA2_3, EPS, MAX_F
 
 
 class BBox:
-    def __init__(self, min_coord, max_coord):
-        self.min_coord = min_coord
-        self.max_coord = max_coord
+    def __init__(self, min_coord=None, max_coord=None):
+        if min_coord is None:
+            self.min_coord = np.array([-MAX_F, -MAX_F, -MAX_F])
+            self.max_coord = self.min_coord*-1
+        else:
+            self.min_coord = min_coord
+            self.max_coord = max_coord
+        self.empty = False
 
     def from_vertices(self, vertices):
         self.min_coord = np.min(vertices, axis=0)
         self.max_coord = np.max(vertices, axis=0)
+        self.update_empty()
 
     def copy(self, bbox):
         self.min_coord = bbox.min_coord
         self.max_coord = bbox.max_coord
+        self.update_empty()
+
+    def update_empty(self):
+        self.empty = np.any(np.abs(self.min_coord - self.max_coord) <= EPS)
+
+    def center(self):
+        return (self.min_coord+self.max_coord)/2.0
+
+    def is_empty(self):
+        return self.empty
 
     def enclose(self, bbox):
         self.min_coord = np.minimum(self.min_coord, bbox.min_coord)
         self.max_coord = np.maximum(self.max_coord, bbox.max_coord)
+        self.update_empty()
+
+    def enclose_point(self, point):
+        self.min_coord = np.minimum(self.min_coord, point)
+        self.max_coord = np.maximum(self.max_coord, point)
+        self.update_empty()
 
     def surface_area(self):
         extent = self.max_coord - self.min_coord

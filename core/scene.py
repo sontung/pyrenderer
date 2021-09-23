@@ -1,6 +1,6 @@
 import trimesh
 import numpy as np
-from accelerators.kdtree import KDtree
+from accelerators.bvh import BVH
 
 
 class Scene:
@@ -9,7 +9,9 @@ class Scene:
         self.vertices = None
         self.faces = None
         self.mesh = None
-        self.tree = KDtree()
+        self.tree = BVH()
+        self.bvh_compatible_prims = []
+        self.bvh_not_compatible_prims = []
 
     def add_primitive(self, prim):
         self.primitives.append(prim)
@@ -21,9 +23,16 @@ class Scene:
             self.vertices = np.vstack([self.vertices, prim.vertices])
             self.faces = np.vstack([self.faces, prim.faces+increment])
 
-    def build_kd_tree(self):
-        print("building KD tree")
-        self.tree.build(self.primitives)
+    def build_bvh_tree(self):
+        print("building BVH tree")
+
+        for prim in self.primitives:
+            if prim.bounds.is_empty():
+                self.bvh_not_compatible_prims.append(prim)
+            else:
+                self.bvh_compatible_prims.append(prim)
+
+        self.tree.build(self.bvh_compatible_prims)
 
     def hit(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": 0.0,
