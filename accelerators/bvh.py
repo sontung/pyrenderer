@@ -11,6 +11,7 @@ class BVHnode:
         self.parent = parent
         self.prims_idx_vec = []
         self.box = BBox(None, None)
+        self.split_cost = 0
 
 
 class Bucket:
@@ -18,6 +19,26 @@ class Bucket:
         self.bbox = bbox
         self.bounds_for_centroids = [0.0, 0.0]
         self.prims_idx_vec = prims_idx_vec
+
+
+def compute_partition_cost(buckets, partition_idx, nb_buckets, bound_area):
+    sa1 = 0.0
+    sa2 = 0.0
+    box1 = BBox()
+    box2 = BBox()
+    for i1 in range(partition_idx):
+        box1.enclose(buckets[i1].bbox)
+        sa1 += len(buckets[i1].prims_idx_vec)
+    for i2 in range(partition_idx, nb_buckets):
+        box2.enclose(buckets[i2].bbox)
+        sa2 += len(buckets[i2].prims_idx_vec)
+
+    if sa1 < 1 or sa2 < 1:
+        print("[WARNING] empty bvh split")
+    cost1 = box1.surface_area()*sa1
+    cost2 = box2.surface_area()*sa2
+    total_cost = (cost2+cost1)/bound_area+1.0
+    return total_cost
 
 
 class BVH:
@@ -41,26 +62,7 @@ class BVH:
                     return i
         return len(buckets)
 
-    def compute_partition_cost(self, buckets, partition_idx, nb_buckets, bound_area):
-        sa1 = 0.0
-        sa2 = 0.0
-        box1 = BBox()
-        box2 = BBox()
-        for i1 in range(partition_idx):
-            box1.enclose(buckets[i1].bbox)
-            sa1 += len(buckets[i1].prims_idx_vec)
-        for i2 in range(partition_idx, nb_buckets):
-            box2.enclose(buckets[i2].bbox)
-            sa2 += len(buckets[i2].prims_idx_vec)
-
-        if sa1 < 1 or sa2 < 1:
-            print("[WARNING] empty bvh split")
-        cost1 = box1.surface_area()*sa1
-        cost2 = box2.surface_area()*sa2
-        total_cost = (cost2+cost1)/bound_area+1.0
-        return total_cost
-
-    def sah_heuristic(self, parent_index, dim, nb_buckets, start, size,
+    def sah_heuristic(self, parent_index, dim, nb_buckets, size,
                       global_bounds, centroid_bounds):
         buckets = [Bucket() for _ in range(nb_buckets)]
         max_centroid = centroid_bounds.max_coord[dim]
@@ -83,10 +85,10 @@ class BVH:
 
         # compute the SAH cost
         global_bound_area = global_bounds.surface_area()
-        min_cost = self.compute_partition_cost(buckets, 1, nb_buckets, global_bound_area)
+        min_cost = compute_partition_cost(buckets, 1, nb_buckets, global_bound_area)
         best_pid = 1
         for pid in range(2, nb_buckets):
-            cost = self.compute_partition_cost(buckets, pid, nb_buckets, global_bound_area)
+            cost = compute_partition_cost(buckets, pid, nb_buckets, global_bound_area)
             if cost < min_cost:
                 min_cost = cost
                 best_pid = pid
@@ -105,7 +107,6 @@ class BVH:
             return
         elif size == 1:
             self.ordered_prims.append(self.nodes[parent_index].prims_idx_vec[0])
-            return
         else:
             left_child_idx = self.create_tree_node()
             right_child_idx = self.create_tree_node()
@@ -124,8 +125,48 @@ class BVH:
                     centroid_bounds.enclose_point(self.primitive_centroids[prim_id])
 
                 # find best split
+                res1 = self.sah_heuristic(parent_index, 0, nb_buckets, size, global_bounds, centroid_bounds)
+                res2 = self.sah_heuristic(parent_index, 1, nb_buckets, size, global_bounds, centroid_bounds)
+                res3 = self.sah_heuristic(parent_index, 2, nb_buckets, size, global_bounds, centroid_bounds)
+                best_bucket_split = min([res1, res2, res3], key=lambda du1: du1["best_cost"])
 
-            return
+                # dont split if the cost is higher than earlier
+                if best_bucket_split["best_cost"] > self.nodes[parent_index].split_cost:
+                    self.ordered_prims.extend(self.nodes[parent_index].prims_idx_vec)
+
+                # create nodes for the best split
+                self.nodes[left_child_idx].split_cost = best_bucket_split["best_cost"]
+                self.nodes[right_child_idx].split_cost = best_bucket_split["best_cost"]
+                bucket_size1 = 0
+                bucket_size2 = 0
+                best_pid = best_bucket_split["best_split"]
+                for i1 in range(best_pid):
+                    for u in range(len(best_bucket_split["buckets"][i1].prims_idx_vec)):
+                        prim_id = best_bucket_split["buckets"][i1].prims_idx_vec[u]
+                        self.nodes[left_child_idx].prims_idx_vec.append(prim_id)
+                    bucket_size1 += len(best_bucket_split["buckets"][i1].prims_idx_vec)
+                for i2 in range(best_pid, nb_buckets):
+                    for u in range(len(best_bucket_split["buckets"][i2].prims_idx_vec)):
+                        prim_id = best_bucket_split["buckets"][i2].prims_idx_vec[u]
+                        self.nodes[right_child_idx].prims_idx_vec.append(prim_id)
+                    bucket_size2 += len(best_bucket_split["buckets"][i2].prims_idx_vec)
+
+                self.nodes[left_child_idx].start = start
+                self.nodes[left_child_idx].size = bucket_size1
+                self.nodes[right_child_idx].start = start+bucket_size1
+                self.nodes[right_child_idx].size = bucket_size2
+            else:
+                self.ordered_prims.extend(self.nodes[parent_index].prims_idx_vec)
+
+            self.nodes[parent_index].left = left_child_idx
+            self.nodes[parent_index].right = right_child_idx
+            self.nodes[left_child_idx].left = left_child_idx
+            self.nodes[left_child_idx].right = left_child_idx
+            self.nodes[right_child_idx].left = right_child_idx
+            self.nodes[right_child_idx].right = right_child_idx
+
+            self.build_helper(left_child_idx)
+            self.build_helper(right_child_idx)
 
     def build(self, primitives):
         self.primitives = primitives
