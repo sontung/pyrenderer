@@ -11,6 +11,10 @@ class BBox:
         self.min_coord = np.min(vertices, axis=0)
         self.max_coord = np.max(vertices, axis=0)
 
+    def copy(self, bbox):
+        self.min_coord = bbox.min_coord
+        self.max_coord = bbox.max_coord
+
     def enclose(self, bbox):
         self.min_coord = np.minimum(self.min_coord, bbox.min_coord)
         self.max_coord = np.maximum(self.max_coord, bbox.max_coord)

@@ -3,6 +3,7 @@ import trimesh
 import sys
 from .intersection import triangle_ray_intersection
 from .affine_transformation import make_transformation_matrix
+from .bbox import BBox
 
 
 class Quad:
@@ -25,6 +26,8 @@ class Quad:
         self.vertices = self.mesh.vertices
         self.faces = self.mesh.faces
         self.bsdf = bsdf
+        self.bounds = BBox(None, None)
+        self.bounds.from_vertices(self.vertices)
 
     def visualize(self):
         self.mesh.show()
@@ -75,6 +78,8 @@ class Cube:
         self.vertices = self.mesh.vertices
         self.faces = self.mesh.faces
         self.bsdf = bsdf
+        self.bounds = BBox(None, None)
+        self.bounds.from_vertices(self.vertices)
 
     def visualize(self):
         self.mesh.show()

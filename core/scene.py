@@ -1,5 +1,6 @@
 import trimesh
 import numpy as np
+from accelerators.kdtree import KDtree
 
 
 class Scene:
@@ -8,6 +9,7 @@ class Scene:
         self.vertices = None
         self.faces = None
         self.mesh = None
+        self.tree = KDtree()
 
     def add_primitive(self, prim):
         self.primitives.append(prim)
@@ -18,6 +20,10 @@ class Scene:
             increment = self.vertices.shape[0]
             self.vertices = np.vstack([self.vertices, prim.vertices])
             self.faces = np.vstack([self.faces, prim.faces+increment])
+
+    def build_kd_tree(self):
+        print("building KD tree")
+        self.tree.build(self.primitives)
 
     def hit(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": 0.0,

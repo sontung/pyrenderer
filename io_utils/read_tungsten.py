@@ -35,6 +35,7 @@ def process_primitives(data):
         prim = PRIM_TYPES[info["type"]](trans_mat, name2bsdf[info["bsdf"]])
         a_scene.add_primitive(prim)
     # a_scene.visualize()
+    a_scene.build_kd_tree()
     return a_scene, a_camera
 
 
