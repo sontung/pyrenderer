@@ -99,6 +99,28 @@ class BVH:
         }
         return res
 
+    def create_nodes_for_split(self, left_child_idx, right_child_idx, best_bucket_split, start, nb_buckets):
+        self.nodes[left_child_idx].split_cost = best_bucket_split["best_cost"]
+        self.nodes[right_child_idx].split_cost = best_bucket_split["best_cost"]
+        bucket_size1 = 0
+        bucket_size2 = 0
+        best_pid = best_bucket_split["best_split"]
+        for i1 in range(best_pid):
+            for u in range(len(best_bucket_split["buckets"][i1].prims_idx_vec)):
+                prim_id = best_bucket_split["buckets"][i1].prims_idx_vec[u]
+                self.nodes[left_child_idx].prims_idx_vec.append(prim_id)
+            bucket_size1 += len(best_bucket_split["buckets"][i1].prims_idx_vec)
+        for i2 in range(best_pid, nb_buckets):
+            for u in range(len(best_bucket_split["buckets"][i2].prims_idx_vec)):
+                prim_id = best_bucket_split["buckets"][i2].prims_idx_vec[u]
+                self.nodes[right_child_idx].prims_idx_vec.append(prim_id)
+            bucket_size2 += len(best_bucket_split["buckets"][i2].prims_idx_vec)
+
+        self.nodes[left_child_idx].start = start
+        self.nodes[left_child_idx].size = bucket_size1
+        self.nodes[right_child_idx].start = start + bucket_size1
+        self.nodes[right_child_idx].size = bucket_size2
+
     def build_helper(self, parent_index):
         start = self.nodes[parent_index].start
         size = self.nodes[parent_index].size
@@ -135,26 +157,8 @@ class BVH:
                     self.ordered_prims.extend(self.nodes[parent_index].prims_idx_vec)
 
                 # create nodes for the best split
-                self.nodes[left_child_idx].split_cost = best_bucket_split["best_cost"]
-                self.nodes[right_child_idx].split_cost = best_bucket_split["best_cost"]
-                bucket_size1 = 0
-                bucket_size2 = 0
-                best_pid = best_bucket_split["best_split"]
-                for i1 in range(best_pid):
-                    for u in range(len(best_bucket_split["buckets"][i1].prims_idx_vec)):
-                        prim_id = best_bucket_split["buckets"][i1].prims_idx_vec[u]
-                        self.nodes[left_child_idx].prims_idx_vec.append(prim_id)
-                    bucket_size1 += len(best_bucket_split["buckets"][i1].prims_idx_vec)
-                for i2 in range(best_pid, nb_buckets):
-                    for u in range(len(best_bucket_split["buckets"][i2].prims_idx_vec)):
-                        prim_id = best_bucket_split["buckets"][i2].prims_idx_vec[u]
-                        self.nodes[right_child_idx].prims_idx_vec.append(prim_id)
-                    bucket_size2 += len(best_bucket_split["buckets"][i2].prims_idx_vec)
+                self.create_nodes_for_split(left_child_idx, right_child_idx, best_bucket_split, start, nb_buckets)
 
-                self.nodes[left_child_idx].start = start
-                self.nodes[left_child_idx].size = bucket_size1
-                self.nodes[right_child_idx].start = start+bucket_size1
-                self.nodes[right_child_idx].size = bucket_size2
             else:
                 self.ordered_prims.extend(self.nodes[parent_index].prims_idx_vec)
 
