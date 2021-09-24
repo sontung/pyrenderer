@@ -5,7 +5,7 @@ from .constants import GAMMA2_3, EPS, MAX_F
 class BBox:
     def __init__(self, min_coord=None, max_coord=None):
         if min_coord is None:
-            self.min_coord = np.array([-MAX_F, -MAX_F, -MAX_F])
+            self.min_coord = np.array([MAX_F, MAX_F, MAX_F])
             self.max_coord = self.min_coord*-1
         else:
             self.min_coord = min_coord
@@ -16,6 +16,9 @@ class BBox:
         self.min_coord = np.min(vertices, axis=0)
         self.max_coord = np.max(vertices, axis=0)
         self.update_empty()
+
+    def __str__(self):
+        return f"bbox: max={self.max_coord} min={self.min_coord}"
 
     def copy(self, bbox):
         self.min_coord = bbox.min_coord
@@ -48,8 +51,8 @@ class BBox:
     def hit(self, ray):
         res = {"origin": ray.position, "hit": False, "t": 0.0,
                "position": np.array([0.0, 0.0, 0.0])}
-
-        t0 = ray.bounds[0], t1 = ray.bounds[1]
+        t0 = ray.bounds[0]
+        t1 = ray.bounds[1]
         for i in range(3):
             inv_ray_dir = ray.inv_direction[i]
             t_near = (self.min_coord[i] - ray.position[i]) * inv_ray_dir
@@ -66,6 +69,6 @@ class BBox:
             if t0 > t1:
                 return res
 
-        res.hit = True
-        res.distance = t0
+        res["hit"] = True
+        res["t"] = t0
         return res

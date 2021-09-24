@@ -34,6 +34,14 @@ class Scene:
 
         self.tree.build(self.bvh_compatible_prims)
 
+    def hit_faster(self, ray):
+        ret = self.tree.hit(ray)
+        for prim in self.bvh_not_compatible_prims:
+            ret2 = prim.hit(ray)
+            if ret2["hit"] and ret2["t"] < ret["t"]:
+                ret = ret2
+        return ret
+
     def hit(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": 0.0,
                "position": np.array([0.0, 0.0, 0.0])}

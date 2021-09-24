@@ -1,5 +1,6 @@
 from mathematics.bbox import BBox
 import numpy as np
+import sys
 
 
 class BVHnode:
@@ -10,15 +11,18 @@ class BVHnode:
         self.size = size
         self.parent = parent
         self.prims_idx_vec = []
-        self.box = BBox(None, None)
+        self.box = BBox()
         self.split_cost = 0
+
+    def is_leaf(self):
+        return self.left == self.right
 
 
 class Bucket:
-    def __init__(self, bbox=None, prims_idx_vec=None):
-        self.bbox = bbox
+    def __init__(self):
+        self.bbox = BBox()
         self.bounds_for_centroids = [0.0, 0.0]
-        self.prims_idx_vec = prims_idx_vec
+        self.prims_idx_vec = []
 
 
 def compute_partition_cost(buckets, partition_idx, nb_buckets, bound_area):
@@ -182,6 +186,37 @@ class BVH:
 
         # split tree
         root = self.create_tree_node()
+        for i in range(len(primitives)):
+            self.nodes[root].prims_idx_vec.append(i)
         self.nodes[root].size = len(primitives)
+
         self.ordered_prims = list(range(len(primitives)))
         self.build_helper(root)
+        new_primitives = [self.primitives[i] for i in self.ordered_prims]
+        self.primitives = new_primitives
+        for i in range(len(self.nodes)):
+            start = self.nodes[i].start
+            size = self.nodes[i].size
+            for j in range(start, start+size):
+                self.nodes[i].box.enclose(self.primitives[j].bounds)
+
+    def hit_helper(self, ray, trace, node_id):
+        if self.nodes[node_id].is_leaf():
+            start = self.nodes[node_id].start
+            size = self.nodes[node_id].size
+            for i in range(start, start+size):
+                ret2 = self.primitives[i].hit(ray)
+                if ret2["hit"] and ret2["t"] < trace["t"]:
+                    trace = ret2
+        else:
+            box_hit = self.nodes[node_id].box.hit(ray)
+            if not box_hit["hit"]:
+                return
+            self.hit_helper(ray, trace, self.nodes[node_id].left)
+            self.hit_helper(ray, trace, self.nodes[node_id].right)
+
+    def hit(self, ray):
+        res = {"origin": ray.position, "hit": False, "t": 0.0,
+               "position": np.array([0.0, 0.0, 0.0])}
+        self.hit_helper(ray, res, 0)
+        return res

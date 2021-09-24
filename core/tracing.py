@@ -2,7 +2,7 @@ import numpy as np
 
 
 def ray_casting(ray, scene):
-    ret = scene.hit(ray)
+    ret = scene.hit_faster(ray)
     if not ret["hit"]:
         return np.array([0.0, 0.0, 0.0])
     else:
