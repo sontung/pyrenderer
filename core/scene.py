@@ -1,5 +1,6 @@
 import trimesh
 import numpy as np
+import open3d as o3d
 from accelerators.bvh import BVH
 
 
@@ -56,3 +57,16 @@ class Scene:
                                     faces=self.faces,
                                     process=False)
         self.mesh.show()
+
+    def visualize_o3d(self, lines):
+        vis = o3d.visualization.Visualizer()
+        vis.create_window()
+        mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(self.vertices),
+                                         o3d.utility.Vector3iVector(self.faces))
+        vis.add_geometry(mesh)
+        vis.add_geometry(lines)
+
+        while True:
+            vis.poll_events()
+            vis.update_renderer()
+

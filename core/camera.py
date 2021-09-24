@@ -4,6 +4,7 @@ from .ray import Ray
 from mathematics.vec3 import normalize_vector, to_homogeneous_vector
 from math import tan, radians
 import numpy as np
+import sys
 
 
 class Camera:
@@ -11,7 +12,8 @@ class Camera:
         self.position = np.array(position)
         self.looking_at = np.array(looking_at)
         self.up = np.array(up)
-        self.iview = create_look_at(self.position, self.looking_at, self.up)
+        self.view = create_look_at(self.position, self.looking_at, self.up)
+        self.iview = np.linalg.inv(self.view)
         self.resolution = resolution
 
         self.aperture = aperture
@@ -44,8 +46,8 @@ class Camera:
             ray_origin[0] = self.aperture * random() - self.aperture / 2.0
             ray_origin[1] = self.aperture * random() - self.aperture / 2.0
 
-        ray_dir_world_space = self.iview @ to_homogeneous_vector(ray_dir)
-        ray_origin_world_space = self.iview @ to_homogeneous_vector(ray_origin)
+        ray_dir_world_space = to_homogeneous_vector(ray_dir) @ self.iview
+        ray_origin_world_space = to_homogeneous_vector(ray_origin) @ self.iview
 
         final_ray = ray_dir_world_space - ray_origin_world_space
         final_ray = normalize_vector(final_ray)
