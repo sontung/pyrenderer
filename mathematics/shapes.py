@@ -42,6 +42,7 @@ class Quad:
                                               self.vertices[triangle[1]]], ray)
             if ret2["hit"] and ret2["t"] < ret["t"]:
                 ret = ret2
+                break
         return ret
 
 

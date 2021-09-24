@@ -29,6 +29,7 @@ def triangle_ray_intersection(vertices, ray):
 
     t = -f*dot_s_e2_e1
     if t >= ray.bounds[1] or t <= EPS:
+        print(f"terminate early {t} > {ray.bounds[1]}")
         return ret
 
     u = -f*np.dot(cross_s_e2, ray.dir)
