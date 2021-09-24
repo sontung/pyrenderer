@@ -1,6 +1,7 @@
 .idea/
 *.lprof
 media/
+*.png
 
 # Byte-compiled / optimized / DLL files
 

@@ -11,3 +11,5 @@ class Ray:
         self.bounds = bounds
         self.inv_direction = 1.0/self.direction
 
+    def reset_bounds(self):
+        self.bounds = np.array([0.0, MAX_F])

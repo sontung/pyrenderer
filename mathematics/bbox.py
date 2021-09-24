@@ -49,7 +49,7 @@ class BBox:
         return 2.0 * (extent[0] * extent[2] + extent[0] * extent[1] + extent[1] * extent[2])
 
     def hit(self, ray):
-        res = {"origin": ray.position, "hit": False, "t": 0.0,
+        res = {"origin": ray.position, "hit": False, "t": MAX_F,
                "position": np.array([0.0, 0.0, 0.0])}
         t0 = ray.bounds[0]
         t1 = ray.bounds[1]

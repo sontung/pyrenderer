@@ -2,6 +2,7 @@ import trimesh
 import numpy as np
 import open3d as o3d
 from accelerators.bvh import BVH
+from mathematics.constants import MAX_F
 
 
 class Scene:
@@ -25,15 +26,13 @@ class Scene:
             self.faces = np.vstack([self.faces, prim.faces+increment])
 
     def build_bvh_tree(self):
-        print("building BVH tree")
-
         for prim in self.primitives:
             if prim.bounds.is_empty():
                 self.bvh_not_compatible_prims.append(prim)
             else:
                 self.bvh_compatible_prims.append(prim)
-
         self.tree.build(self.bvh_compatible_prims)
+        print("done building bvh")
 
     def hit_faster(self, ray):
         ret = self.tree.hit(ray)
@@ -44,7 +43,7 @@ class Scene:
         return ret
 
     def hit(self, ray):
-        ret = {"origin": ray.position, "hit": False, "t": 0.0,
+        ret = {"origin": ray.position, "hit": False, "t": MAX_F,
                "position": np.array([0.0, 0.0, 0.0])}
         for prim in self.primitives:
             ret2 = prim.hit(ray)

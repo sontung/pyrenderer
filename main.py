@@ -1,6 +1,7 @@
 from io_utils.read_tungsten import read_file
 from core.tracing import ray_casting
 from tqdm import tqdm
+from skimage.io import imsave
 import numpy as np
 import random
 import argparse
@@ -24,6 +25,9 @@ def main():
             for j in range(y_dim):
                 image[i, j] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
                 pbar.update(1)
+    image *= 255
+    image = image.astype(np.uint8)
+    imsave("test.png", image)
     return image
 
 

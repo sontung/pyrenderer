@@ -1,4 +1,5 @@
 from mathematics.bbox import BBox
+from mathematics.constants import MAX_F
 import numpy as np
 import sys
 
@@ -216,7 +217,7 @@ class BVH:
             self.hit_helper(ray, trace, self.nodes[node_id].right)
 
     def hit(self, ray):
-        res = {"origin": ray.position, "hit": False, "t": 0.0,
+        res = {"origin": ray.position, "hit": False, "t": MAX_F,
                "position": np.array([0.0, 0.0, 0.0])}
         self.hit_helper(ray, res, 0)
         return res
