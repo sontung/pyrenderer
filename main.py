@@ -23,7 +23,7 @@ def main():
     with tqdm(total=x_dim * y_dim, desc="rendering") as pbar:
         for i in range(x_dim):
             for j in range(y_dim):
-                image[i, j] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
+                image[j, i] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
                 pbar.update(1)
     image *= 255
     image = image.astype(np.uint8)

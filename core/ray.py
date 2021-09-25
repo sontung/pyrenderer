@@ -6,7 +6,6 @@ class Ray:
     def __init__(self, position, direction, depth=0):
         self.position = position
         self.direction = direction
-        self.dir = direction
         self.depth = depth
         self.bounds = np.array([0.0, MAX_F])
         self.inv_direction = 1.0/self.direction

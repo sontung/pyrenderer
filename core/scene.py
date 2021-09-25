@@ -34,12 +34,17 @@ class Scene:
         self.tree.build(self.bvh_compatible_prims)
         print("done building bvh")
 
-    def hit_faster(self, ray):
+    def hit_faster(self, ray, debug=False):
         ret = self.tree.hit(ray)
+        if debug:
+            print(ray.position, ray.direction)
+            print("bvh", ret)
         for prim in self.bvh_not_compatible_prims:
             ret2 = prim.hit(ray)
             if ret2["hit"] and ret2["t"] < ret["t"]:
                 ret = ret2
+        if debug:
+            print("rest", ret)
         return ret
 
     def hit(self, ray):

@@ -2,6 +2,7 @@
 *.lprof
 media/
 *.png
+trivial_codes/*
 
 # Byte-compiled / optimized / DLL files
 

@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 
-@profile
+# @profile
 def ray_casting(ray, scene):
     # v0 = [7.00118345e-01, 1.11022302e-16, 1.70214382e-01],
     # v1 = [1.30216309e-01, 5.55111512e-17, - 1.14109676e-04],
@@ -13,6 +13,9 @@ def ray_casting(ray, scene):
     ret = scene.hit_faster(ray)
 
     if not ret["hit"]:
+        with open("debug/nothit.txt", "a") as afile:
+            print(ray.position[0], ray.position[1], ray.position[2],
+                  ray.direction[0], ray.direction[1], ray.direction[2], file=afile)
         return np.array([0.0, 0.0, 0.0])
     else:
         if ret["bsdf"].emitting_light:
