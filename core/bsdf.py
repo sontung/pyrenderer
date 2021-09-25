@@ -42,5 +42,8 @@ class BSDF:
             print(f"[WARNING] bsdf of type {self._type} not implemented")
             raise NotImplementedError
 
+    def get_distribution(self):
+        return self.distribution
+
     def scatter(self):
         return self.distribution.scatter()

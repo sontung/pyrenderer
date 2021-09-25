@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 
-# @profile
+@profile
 def ray_casting(ray, scene):
     # v0 = [7.00118345e-01, 1.11022302e-16, 1.70214382e-01],
     # v1 = [1.30216309e-01, 5.55111512e-17, - 1.14109676e-04],
@@ -15,4 +15,6 @@ def ray_casting(ray, scene):
     if not ret["hit"]:
         return np.array([0.0, 0.0, 0.0])
     else:
-        return np.array([1.0, 0.0, 0.0])
+        if ret["bsdf"].emitting_light:
+            return ret["bsdf"].evaluate()
+        return ret["bsdf"].rho

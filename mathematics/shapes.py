@@ -44,6 +44,8 @@ class Quad:
             if ret2["hit"] and ret2["t"] < ret["t"]:
                 ret = ret2
                 break
+        if ret["hit"]:
+            ret["bsdf"] = self.bsdf
         return ret
 
 
@@ -89,13 +91,21 @@ class Cube:
     def hit(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": MAX_F,
                "position": np.array([0.0, 0.0, 0.0])}
+        skip_next = False
         for i in range(self.faces.shape[0]):
+            if skip_next:
+                skip_next = True
+                continue
             triangle = self.faces[i]
             ret2 = triangle_ray_intersection([self.vertices[triangle[0]],
                                               self.vertices[triangle[1]],
                                               self.vertices[triangle[2]]], ray)
             if ret2["hit"] and ret2["t"] < ret["t"]:
+                if i % 2 == 0:
+                    skip_next = True
                 ret = ret2
+        if ret["hit"]:
+            ret["bsdf"] = self.bsdf
         return ret
 
 

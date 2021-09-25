@@ -50,7 +50,7 @@ def main_debug():
                 lines.append([len(points)-2, len(points)-1])
                 colors.append([1, 0, 0])
             else:
-                points.extend([ray.position, ray.position+5*ray.direction])
+                points.extend([ray.position, ray.position+ret["t"]*ray.direction])
                 lines.append([len(points)-2, len(points)-1])
                 colors.append([0, 1, 0])
     line_set = o3d.geometry.LineSet()

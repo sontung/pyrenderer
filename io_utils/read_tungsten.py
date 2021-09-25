@@ -24,7 +24,7 @@ def process_primitives(data):
 
     # read bsdfs
     for info_bsdf in data["bsdfs"]:
-        name2bsdf[info_bsdf["name"]] = BSDF(info_bsdf)
+        name2bsdf[info_bsdf["name"]] = BSDF(info_bsdf).get_distribution()
 
     # read primitives
     for info in data['primitives']:
