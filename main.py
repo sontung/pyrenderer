@@ -39,15 +39,20 @@ def main_debug():
     lines = []
     points = []
     colors = []
-    for i in range(0, x_dim, 10):
-        for j in range(0, y_dim, 10):
+    for i in range(0, x_dim, 100):
+        for j in range(0, y_dim, 100):
             x = (i + random.random()) / float(x_dim)
             y = (j + random.random()) / float(y_dim)
             ray = a_camera.generate_ray(np.array([x, y]))
-            points.extend([ray.position, ray.position+0.5*ray.direction])
-            lines.append([len(points)-2, len(points)-1])
-            colors.append([1, 0, 0])
-            # image[i, j], ray = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
+            ret = a_scene.hit(ray)
+            if not ret["hit"]:
+                points.extend([ray.position, ray.position+5*ray.direction])
+                lines.append([len(points)-2, len(points)-1])
+                colors.append([1, 0, 0])
+            else:
+                points.extend([ray.position, ray.position+5*ray.direction])
+                lines.append([len(points)-2, len(points)-1])
+                colors.append([0, 1, 0])
     line_set = o3d.geometry.LineSet()
     line_set.points = o3d.utility.Vector3dVector(points)
     line_set.lines = o3d.utility.Vector2iVector(lines)

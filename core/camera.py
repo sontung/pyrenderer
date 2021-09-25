@@ -51,4 +51,5 @@ class Camera:
 
         final_ray = ray_dir_world_space - ray_origin_world_space
         final_ray = normalize_vector(final_ray)
-        return Ray(ray_origin_world_space[:3], final_ray[:3], 8)
+        a_ray = Ray(ray_origin_world_space[:3], final_ray[:3], 8)
+        return a_ray

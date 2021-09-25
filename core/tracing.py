@@ -11,15 +11,6 @@ def ray_casting(ray, scene):
     # ray.direction = p - ray.position
     # print(p, ray.position, ray.direction)
     ret = scene.hit_faster(ray)
-    # ray.reset_bounds()
-    ret2 = scene.hit(ray)
-    if ret["hit"] != ret2["hit"]:
-        print("bvh", ret)
-        print("bf", ret2)
-        sys.exit()
-    else:
-        if abs(ret2["t"] - ret["t"]) > 0.001:
-            print(ret2["t"], ret["t"])
 
     if not ret["hit"]:
         return np.array([0.0, 0.0, 0.0])
