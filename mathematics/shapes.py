@@ -2,7 +2,7 @@ import numpy as np
 import trimesh
 from .constants import MAX_F
 import sys
-from .intersection import triangle_ray_intersection
+from .intersection import triangle_ray_intersection, triangle_ray_intersection_grouping
 from .affine_transformation import make_transformation_matrix
 from .bbox import BBox
 
@@ -29,11 +29,12 @@ class Quad:
         self.bsdf = bsdf
         self.bounds = BBox(None, None)
         self.bounds.from_vertices(self.vertices)
+        self.data = {}
 
     def visualize(self):
         self.mesh.show()
 
-    def hit(self, ray):
+    def hit_slow(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": MAX_F,
                "position": np.array([0.0, 0.0, 0.0])}
         for i in range(self.faces.shape[0]):
@@ -47,6 +48,31 @@ class Quad:
         if ret["hit"]:
             ret["bsdf"] = self.bsdf
         return ret
+
+    def hit_faster(self, ray):
+        ret = {"origin": ray.position, "hit": False, "t": MAX_F,
+               "position": np.array([0.0, 0.0, 0.0])}
+        triangles = []
+        for i in range(self.faces.shape[0]):
+            triangle = self.faces[i]
+            if i not in self.data:
+                self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
+                                self.vertices[triangle[2]]-self.vertices[triangle[0]]]
+            triangles.append([self.vertices[triangle[0]],
+                              self.vertices[triangle[1]],
+                              self.vertices[triangle[2]],
+                              self.data[i]])
+        results = triangle_ray_intersection_grouping(ray, triangles)
+        hit_results = [du for du in results if du["hit"]]
+        if len(hit_results) > 0:
+            ret = min(hit_results, key=lambda du: du["t"])
+            ret["bsdf"] = self.bsdf
+            return ret
+        else:
+            return ret
+
+    def hit(self, ray):
+        return self.hit_faster(ray)
 
 
 class Cube:
@@ -84,29 +110,49 @@ class Cube:
         self.bsdf = bsdf
         self.bounds = BBox(None, None)
         self.bounds.from_vertices(self.vertices)
+        self.data = {}
 
     def visualize(self):
         self.mesh.show()
 
-    def hit(self, ray):
+    def hit_faster(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": MAX_F,
                "position": np.array([0.0, 0.0, 0.0])}
-        skip_next = False
+        triangles = []
         for i in range(self.faces.shape[0]):
-            if skip_next:
-                skip_next = True
-                continue
+            triangle = self.faces[i]
+            if i not in self.data:
+                self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
+                                self.vertices[triangle[2]]-self.vertices[triangle[0]]]
+            triangles.append([self.vertices[triangle[0]],
+                              self.vertices[triangle[1]],
+                              self.vertices[triangle[2]],
+                              self.data[i]])
+        results = triangle_ray_intersection_grouping(ray, triangles)
+        hit_results = [du for du in results if du["hit"]]
+        if len(hit_results) > 0:
+            ret = min(hit_results, key=lambda du: du["t"])
+            ret["bsdf"] = self.bsdf
+            return ret
+        else:
+            return ret
+
+    def hit_slow(self, ray):
+        ret = {"origin": ray.position, "hit": False, "t": MAX_F,
+               "position": np.array([0.0, 0.0, 0.0])}
+        for i in range(self.faces.shape[0]):
             triangle = self.faces[i]
             ret2 = triangle_ray_intersection([self.vertices[triangle[0]],
                                               self.vertices[triangle[1]],
                                               self.vertices[triangle[2]]], ray)
             if ret2["hit"] and ret2["t"] < ret["t"]:
-                if i % 2 == 0:
-                    skip_next = True
                 ret = ret2
         if ret["hit"]:
             ret["bsdf"] = self.bsdf
         return ret
+
+    def hit(self, ray):
+        return self.hit_faster(ray)
 
 
 if __name__ == '__main__':

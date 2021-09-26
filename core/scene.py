@@ -12,6 +12,7 @@ class Scene:
         self.faces = None
         self.mesh = None
         self.tree = BVH()
+        self.tree_small = BVH()
         self.bvh_compatible_prims = []
         self.bvh_not_compatible_prims = []
 
@@ -31,21 +32,19 @@ class Scene:
                 self.bvh_not_compatible_prims.append(prim)
             else:
                 self.bvh_compatible_prims.append(prim)
-        self.tree.build(self.bvh_compatible_prims)
-        print("done building bvh")
+        self.tree.build(self.primitives)
+        self.tree_small.build(self.bvh_compatible_prims)
 
-    def hit_faster(self, ray, debug=False):
-        ret = self.tree.hit(ray)
-        if debug:
-            print(ray.position, ray.direction)
-            print("bvh", ret)
+    def hit_slow(self, ray):
+        ret = self.tree_small.hit(ray)
         for prim in self.bvh_not_compatible_prims:
             ret2 = prim.hit(ray)
             if ret2["hit"] and ret2["t"] < ret["t"]:
                 ret = ret2
-        if debug:
-            print("rest", ret)
         return ret
+
+    def hit_faster(self, ray):
+        return self.hit_slow(ray)
 
     def hit(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": MAX_F,

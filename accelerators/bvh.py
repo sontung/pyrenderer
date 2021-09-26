@@ -38,8 +38,6 @@ def compute_partition_cost(buckets, partition_idx, nb_buckets, bound_area):
         box2.enclose(buckets[i2].bbox)
         sa2 += len(buckets[i2].prims_idx_vec)
 
-    if sa1 < 1 or sa2 < 1:
-        print("[WARNING] empty bvh split")
     cost1 = box1.surface_area()*sa1
     cost2 = box2.surface_area()*sa2
     total_cost = (cost2+cost1)/bound_area+1.0
@@ -81,6 +79,7 @@ class BVH:
         for i in range(nb_buckets):
             buckets[i].bounds_for_centroids[0] = min_centroid+step*i
             buckets[i].bounds_for_centroids[1] = min_centroid+step*(i+1)
+            assert buckets[i].bounds_for_centroids[0] < buckets[i].bounds_for_centroids[1]
 
         # compute bucket for each primitive
         for i in range(size):
@@ -148,16 +147,27 @@ class BVH:
                 # init bounds
                 global_bounds = BBox()
                 centroid_bounds = BBox()
-                for i in range(start, start+size):
+                for i in range(size):
                     prim_id = self.nodes[parent_index].prims_idx_vec[i]
                     global_bounds.enclose(self.primitives[prim_id].bounds)
                     centroid_bounds.enclose_point(self.primitive_centroids[prim_id])
 
                 # find best split
-                res1 = self.sah_heuristic(parent_index, 0, nb_buckets, size, global_bounds, centroid_bounds)
-                res2 = self.sah_heuristic(parent_index, 1, nb_buckets, size, global_bounds, centroid_bounds)
-                res3 = self.sah_heuristic(parent_index, 2, nb_buckets, size, global_bounds, centroid_bounds)
-                best_bucket_split = min([res1, res2, res3], key=lambda du1: du1["best_cost"])
+                all_res = []
+                if centroid_bounds.min_coord[0] != centroid_bounds.max_coord[0]:
+                    res1 = self.sah_heuristic(parent_index, 0, nb_buckets, size, global_bounds, centroid_bounds)
+                    all_res.append(res1)
+                if centroid_bounds.min_coord[1] != centroid_bounds.max_coord[1]:
+                    res2 = self.sah_heuristic(parent_index, 1, nb_buckets, size, global_bounds, centroid_bounds)
+                    all_res.append(res2)
+
+                if centroid_bounds.min_coord[2] != centroid_bounds.max_coord[2]:
+                    res3 = self.sah_heuristic(parent_index, 2, nb_buckets, size, global_bounds, centroid_bounds)
+                    all_res.append(res3)
+
+                if len(all_res) == 0:
+                    self.ordered_prims.extend(self.nodes[parent_index].prims_idx_vec)
+                best_bucket_split = min(all_res, key=lambda du1: du1["best_cost"])
 
                 # dont split if the cost is higher than earlier
                 if best_bucket_split["best_cost"] > self.nodes[parent_index].split_cost:
@@ -204,7 +214,7 @@ class BVH:
                 self.nodes[i].box.enclose(self.primitives[j].bounds)
 
     def hit_helper(self, ray, node_id):
-        if self.nodes[node_id].is_leaf():
+        if self.nodes[node_id].is_leaf() or self.nodes[node_id].box.is_empty():
             start = self.nodes[node_id].start
             size = self.nodes[node_id].size
             for i in range(start, start+size):
