@@ -54,6 +54,8 @@ class BVH:
         self.nodes = []
         self.primitives = []
         self.primitive_centroids = []
+        self.trace = {"origin": np.array([0.0, 0.0, 0.0]), "hit": False, "t": MAX_F,
+                      "position": np.array([0.0, 0.0, 0.0])}
 
     def create_tree_node(self):
         a_node = BVHnode(0, 0, -1, 0, 0)
@@ -201,23 +203,23 @@ class BVH:
             for j in range(start, start+size):
                 self.nodes[i].box.enclose(self.primitives[j].bounds)
 
-    def hit_helper(self, ray, trace, node_id):
+    def hit_helper(self, ray, node_id):
         if self.nodes[node_id].is_leaf():
             start = self.nodes[node_id].start
             size = self.nodes[node_id].size
             for i in range(start, start+size):
                 ret2 = self.primitives[i].hit(ray)
-                if ret2["hit"] and ret2["t"] < trace["t"]:
-                    trace = ret2
+                if ret2["hit"] and ret2["t"] < self.trace["t"]:
+                    self.trace = ret2
         else:
             box_hit = self.nodes[node_id].box.hit(ray)
             if not box_hit["hit"]:
                 return
-            self.hit_helper(ray, trace, self.nodes[node_id].left)
-            self.hit_helper(ray, trace, self.nodes[node_id].right)
+            self.hit_helper(ray, self.nodes[node_id].left)
+            self.hit_helper(ray, self.nodes[node_id].right)
 
     def hit(self, ray):
-        res = {"origin": ray.position, "hit": False, "t": MAX_F,
-               "position": np.array([0.0, 0.0, 0.0])}
-        self.hit_helper(ray, res, 0)
-        return res
+        self.trace = {"origin": ray.position, "hit": False, "t": MAX_F,
+                      "position": np.array([0.0, 0.0, 0.0])}
+        self.hit_helper(ray, 0)
+        return self.trace

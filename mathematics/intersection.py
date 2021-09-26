@@ -24,7 +24,6 @@ def triangle_ray_intersection(vertices, ray):
     if u < 0.0:
         return ret
     r = np.cross(s, e1)
-
     t = f*np.dot(e2, r)
 
     if t > ray.bounds[1] or t < EPS:

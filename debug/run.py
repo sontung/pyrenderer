@@ -24,12 +24,11 @@ def debug():
         colors = []
 
         ray = Ray(np.array([x, y, z]), np.array([dx, dy, dz]))
-        print(x, y, z, dx, dy, dz)
-        print(ray.position, ray.direction)
         ret = a_scene.hit(ray)
-        print(ray.direction)
-        print(a_scene.hit_faster(ray, debug=True))
-        print(ret)
+        ret2 = a_scene.hit_faster(ray)
+        assert ret2["hit"] == ret["hit"]
+        if ret["hit"]:
+            assert abs(ret2["t"] - ret["t"]) < 0.001
         if not ret["hit"]:
             points.extend([ray.position, ray.position + 10 * ray.direction])
             lines.append([len(points) - 2, len(points) - 1])
@@ -47,4 +46,4 @@ def debug():
         line_set.colors = o3d.utility.Vector3dVector(colors)
         # a_scene.visualize_o3d(line_set)
 
-        break
+        # break
