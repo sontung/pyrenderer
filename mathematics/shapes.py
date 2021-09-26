@@ -30,6 +30,13 @@ class Quad:
         self.bounds = BBox(None, None)
         self.bounds.from_vertices(self.vertices)
         self.data = {}
+        self.e1e2 = []
+        for i in range(self.faces.shape[0]):
+            triangle = self.faces[i]
+            e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
+            e2 = self.vertices[triangle[2]]-self.vertices[triangle[0]]
+            self.e1e2.extend([e1, e2])
+        self.e1e2 = np.hstack(self.e1e2)
 
     def visualize(self):
         self.mesh.show()
@@ -62,7 +69,7 @@ class Quad:
                               self.vertices[triangle[1]],
                               self.vertices[triangle[2]],
                               self.data[i]])
-        results = triangle_ray_intersection_grouping(ray, triangles)
+        results = triangle_ray_intersection_grouping(ray, triangles, self.e1e2)
         hit_results = [du for du in results if du["hit"]]
         if len(hit_results) > 0:
             ret = min(hit_results, key=lambda du: du["t"])
@@ -111,6 +118,13 @@ class Cube:
         self.bounds = BBox(None, None)
         self.bounds.from_vertices(self.vertices)
         self.data = {}
+        self.e1e2 = []
+        for i in range(self.faces.shape[0]):
+            triangle = self.faces[i]
+            e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
+            e2 = self.vertices[triangle[2]]-self.vertices[triangle[0]]
+            self.e1e2.extend([e1, e2])
+        self.e1e2 = np.hstack(self.e1e2)
 
     def visualize(self):
         self.mesh.show()
@@ -128,7 +142,7 @@ class Cube:
                               self.vertices[triangle[1]],
                               self.vertices[triangle[2]],
                               self.data[i]])
-        results = triangle_ray_intersection_grouping(ray, triangles)
+        results = triangle_ray_intersection_grouping(ray, triangles, self.e1e2)
         hit_results = [du for du in results if du["hit"]]
         if len(hit_results) > 0:
             ret = min(hit_results, key=lambda du: du["t"])
