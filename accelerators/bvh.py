@@ -52,8 +52,7 @@ class BVH:
         self.nodes = []
         self.primitives = []
         self.primitive_centroids = []
-        self.trace = {"origin": np.array([0.0, 0.0, 0.0]), "hit": False, "t": MAX_F,
-                      "position": np.array([0.0, 0.0, 0.0])}
+        self.trace = {"hit": False, "t": MAX_F}
 
     def create_tree_node(self):
         a_node = BVHnode(0, 0, -1, 0, 0)
@@ -229,7 +228,6 @@ class BVH:
             self.hit_helper(ray, self.nodes[node_id].right)
 
     def hit(self, ray):
-        self.trace = {"origin": ray.position, "hit": False, "t": MAX_F,
-                      "position": np.array([0.0, 0.0, 0.0])}
+        self.trace = {"origin": ray.position, "hit": False, "t": MAX_F}
         self.hit_helper(ray, 0)
         return self.trace

@@ -31,52 +31,37 @@ class Quad:
         self.bounds.from_vertices(self.vertices)
         self.data = {}
         self.e1e2 = []
+        self.triangles = []
         for i in range(self.faces.shape[0]):
             triangle = self.faces[i]
             e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
             e2 = self.vertices[triangle[2]]-self.vertices[triangle[0]]
             self.e1e2.extend([e1, e2])
+            if i not in self.data:
+                self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
+                                self.vertices[triangle[2]]-self.vertices[triangle[0]]]
+            self.triangles.append([self.vertices[triangle[0]],
+                                   self.vertices[triangle[1]],
+                                   self.vertices[triangle[2]],
+                                   self.data[i]])
         self.e1e2 = np.hstack(self.e1e2)
+        self.cross_product = np.zeros((self.faces.shape[0]*2*3,), np.float64)
+        self.cross_a = np.zeros_like(self.cross_product, np.float64)
+        self.cross_b = np.zeros_like(self.cross_product, np.float64)
 
     def visualize(self):
         self.mesh.show()
 
-    def hit_slow(self, ray):
-        ret = {"origin": ray.position, "hit": False, "t": MAX_F,
-               "position": np.array([0.0, 0.0, 0.0])}
-        for i in range(self.faces.shape[0]):
-            triangle = self.faces[i]
-            ret2 = triangle_ray_intersection([self.vertices[triangle[0]],
-                                              self.vertices[triangle[1]],
-                                              self.vertices[triangle[2]]], ray)
-            if ret2["hit"] and ret2["t"] < ret["t"]:
-                ret = ret2
-                break
-        if ret["hit"]:
-            ret["bsdf"] = self.bsdf
-        return ret
-
     def hit_faster(self, ray):
-        ret = {"origin": ray.position, "hit": False, "t": MAX_F,
-               "position": np.array([0.0, 0.0, 0.0])}
-        triangles = []
-        for i in range(self.faces.shape[0]):
-            triangle = self.faces[i]
-            if i not in self.data:
-                self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
-                                self.vertices[triangle[2]]-self.vertices[triangle[0]]]
-            triangles.append([self.vertices[triangle[0]],
-                              self.vertices[triangle[1]],
-                              self.vertices[triangle[2]],
-                              self.data[i]])
-        results = triangle_ray_intersection_grouping(ray, triangles, self.e1e2)
+        results = triangle_ray_intersection_grouping(ray, self.triangles, self.e1e2,
+                                                     self.cross_product, self.cross_a, self.cross_b)
         hit_results = [du for du in results if du["hit"]]
         if len(hit_results) > 0:
             ret = min(hit_results, key=lambda du: du["t"])
             ret["bsdf"] = self.bsdf
             return ret
         else:
-            return ret
+            return {"hit": False}
 
     def hit(self, ray):
         return self.hit_faster(ray)
@@ -119,51 +104,37 @@ class Cube:
         self.bounds.from_vertices(self.vertices)
         self.data = {}
         self.e1e2 = []
+        self.triangles = []
         for i in range(self.faces.shape[0]):
             triangle = self.faces[i]
             e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
             e2 = self.vertices[triangle[2]]-self.vertices[triangle[0]]
             self.e1e2.extend([e1, e2])
+            if i not in self.data:
+                self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
+                                self.vertices[triangle[2]]-self.vertices[triangle[0]]]
+            self.triangles.append([self.vertices[triangle[0]],
+                                   self.vertices[triangle[1]],
+                                   self.vertices[triangle[2]],
+                                   self.data[i]])
         self.e1e2 = np.hstack(self.e1e2)
+        self.cross_product = np.zeros((self.faces.shape[0]*2*3,), np.float64)
+        self.cross_a = np.zeros_like(self.cross_product, np.float64)
+        self.cross_b = np.zeros_like(self.cross_product, np.float64)
 
     def visualize(self):
         self.mesh.show()
 
     def hit_faster(self, ray):
-        ret = {"origin": ray.position, "hit": False, "t": MAX_F,
-               "position": np.array([0.0, 0.0, 0.0])}
-        triangles = []
-        for i in range(self.faces.shape[0]):
-            triangle = self.faces[i]
-            if i not in self.data:
-                self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
-                                self.vertices[triangle[2]]-self.vertices[triangle[0]]]
-            triangles.append([self.vertices[triangle[0]],
-                              self.vertices[triangle[1]],
-                              self.vertices[triangle[2]],
-                              self.data[i]])
-        results = triangle_ray_intersection_grouping(ray, triangles, self.e1e2)
+        results = triangle_ray_intersection_grouping(ray, self.triangles, self.e1e2,
+                                                     self.cross_product, self.cross_a, self.cross_b)
         hit_results = [du for du in results if du["hit"]]
         if len(hit_results) > 0:
             ret = min(hit_results, key=lambda du: du["t"])
             ret["bsdf"] = self.bsdf
             return ret
         else:
-            return ret
-
-    def hit_slow(self, ray):
-        ret = {"origin": ray.position, "hit": False, "t": MAX_F,
-               "position": np.array([0.0, 0.0, 0.0])}
-        for i in range(self.faces.shape[0]):
-            triangle = self.faces[i]
-            ret2 = triangle_ray_intersection([self.vertices[triangle[0]],
-                                              self.vertices[triangle[1]],
-                                              self.vertices[triangle[2]]], ray)
-            if ret2["hit"] and ret2["t"] < ret["t"]:
-                ret = ret2
-        if ret["hit"]:
-            ret["bsdf"] = self.bsdf
-        return ret
+            return {"hit": False}
 
     def hit(self, ray):
         return self.hit_faster(ray)

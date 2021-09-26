@@ -47,10 +47,9 @@ class BBox:
     def surface_area(self):
         extent = self.max_coord - self.min_coord
         return 2.0 * (extent[0] * extent[2] + extent[0] * extent[1] + extent[1] * extent[2])
-
+    
     def hit(self, ray):
-        res = {"origin": ray.position, "hit": False, "t": MAX_F,
-               "position": np.array([0.0, 0.0, 0.0])}
+        res = {"hit": False, "t": MAX_F}
         t0 = ray.bounds[0]
         t1 = ray.bounds[1]
         for i in range(3):
