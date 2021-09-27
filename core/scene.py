@@ -2,6 +2,7 @@ import trimesh
 import numpy as np
 import open3d as o3d
 from accelerators.bvh import BVH
+from accelerators.aggregator import Aggregator
 from mathematics.constants import MAX_F
 
 
@@ -15,6 +16,7 @@ class Scene:
         self.tree_small = BVH()
         self.bvh_compatible_prims = []
         self.bvh_not_compatible_prims = []
+        self.aggregator = Aggregator()
 
     def add_primitive(self, prim):
         self.primitives.append(prim)
@@ -29,6 +31,7 @@ class Scene:
     def build_bvh_tree(self):
         for prim in self.primitives:
             if prim.bounds.is_empty():
+                self.aggregator.push(prim)
                 self.bvh_not_compatible_prims.append(prim)
             else:
                 self.bvh_compatible_prims.append(prim)
@@ -43,8 +46,21 @@ class Scene:
                 ret = ret2
         return ret
 
+    def hit2(self, ray):
+        ret = self.tree_small.hit(ray)
+        ret2 = self.aggregator.hit(ray)
+        if ret2["hit"] and ret2["t"] < ret["t"]:
+            ret = ret2
+        return ret
+
+    # @profile
     def hit_faster(self, ray):
-        return self.hit_slow(ray)
+        u1 = self.hit2(ray)
+        # u2 = self.hit_slow(ray)
+        # assert u1["hit"] == u2["hit"]
+        # if u1["hit"]:
+        #     assert abs(u1["t"] - u2["t"]) < 0.1
+        return u1
 
     def hit(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": MAX_F,

@@ -1,25 +1,6 @@
 from .constants import EPS
+from .fast_op import fast_dot3, fast_subtract2, cross_product2, fast_dot
 import numpy as np
-from numba import njit, prange, guvectorize, float64
-
-
-@njit("f8(f8[:], f8[:])")
-def fast_dot(x, ty):
-    res = x[0]*ty[0]+x[1]*ty[1]+x[2]*ty[2]
-    return res
-
-
-@njit("f8[:](f8[:], f8[:])")
-def fast_dot3(x, ty):
-    res = np.zeros((x.shape[0]//3), np.float64)
-    for i in range(0, x.shape[0], 3):
-        res[i//3] = x[i]*ty[i]+x[i+1]*ty[i+1]+x[i+2]*ty[i+2]
-    return res
-
-
-@njit("f8[:](f8[:], f8[:])")
-def fast_subtract(x, ty):
-    return x-ty
 
 
 def triangle_ray_intersection(vertices, ray):
@@ -59,7 +40,7 @@ def triangle_ray_intersection(vertices, ray):
 
 # @profile
 def triangle_ray_intersection_wo_cross(ray, q, r, a, e2r, s):
-    ret = {"origin": ray.position, "hit": False, "t": 0.0}
+    ret = {"hit": False, "t": 0.0}
 
     if -EPS < a < EPS:
         return ret
@@ -79,41 +60,27 @@ def triangle_ray_intersection_wo_cross(ray, q, r, a, e2r, s):
 
     ray.bounds[1] = t
     ret["t"] = t
+    ret["origin"] = ray.position
     ret["position"] = ray.position+t*ray.direction
     ret["hit"] = True
     # ret.normal = (1.0-u-v)*v_0.normal+u*v_1.normal+v*v_2.normal
     return ret
 
 
-@njit("(f8[:], f8[:], f8[:])")
-def cross_product2(x, y, res):
-    for i in range(res.shape[0]//3):
-        res[i*3] = x[i*3+1]*y[i*3+2] - x[i*3+2]*y[i*3+1]
-        res[i*3+1] = x[i*3+2]*y[i*3] - x[i*3]*y[i*3+2]
-        res[i*3+2] = x[i*3]*y[i*3+1] - x[i*3+1]*y[i*3]
-
-
-@guvectorize([(float64[:], float64[:], float64[:])], '(n),(n)->(n)')
-def cross_product(x, y, res):
-    for i in range(res.shape[0]//3):
-        res[i*3] = x[i*3+1]*y[i*3+2] - x[i*3+2]*y[i*3+1]
-        res[i*3+1] = x[i*3+2]*y[i*3] - x[i*3]*y[i*3+2]
-        res[i*3+2] = x[i*3]*y[i*3+1] - x[i*3+1]*y[i*3]
-
-
 # @profile
-def triangle_ray_intersection_grouping(ray, triangles, e1e2, cross_holder, cross_a, cross_b):
-    all_s = []
+def triangle_ray_intersection_grouping(ray, triangles, e1e2, cross_holder, cross_a, cross_b,
+                                       s_holder):
+    all_s = np.zeros((len(triangles), 3), np.float64)
     for idx, vertices in enumerate(triangles):
         p0 = vertices[0]
         e1 = vertices[3][0]
         e2 = vertices[3][1]
-        s = fast_subtract(ray.position, p0)
+        fast_subtract2(ray.position, p0, s_holder)
         cross_a[idx*6: idx*6+3] = ray.direction
-        cross_a[idx*6+3: idx*6+6] = s
+        cross_a[idx*6+3: idx*6+6] = s_holder
         cross_b[idx*6: idx*6+3] = e2
         cross_b[idx*6+3: idx*6+6] = e1
-        all_s.append(s)
+        all_s[idx] = s_holder
     cross_product2(cross_a, cross_b, cross_holder)
     all_crosses = cross_holder.reshape((-1, 3))
     # v = cross_product(np.hstack(cross_a), np.hstack(cross_b))

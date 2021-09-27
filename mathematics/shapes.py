@@ -48,13 +48,15 @@ class Quad:
         self.cross_product = np.zeros((self.faces.shape[0]*2*3,), np.float64)
         self.cross_a = np.zeros_like(self.cross_product, np.float64)
         self.cross_b = np.zeros_like(self.cross_product, np.float64)
+        self.s_holder = np.zeros((3,), np.float64)
 
     def visualize(self):
         self.mesh.show()
 
     def hit_faster(self, ray):
         results = triangle_ray_intersection_grouping(ray, self.triangles, self.e1e2,
-                                                     self.cross_product, self.cross_a, self.cross_b)
+                                                     self.cross_product, self.cross_a, self.cross_b,
+                                                     self.s_holder)
         hit_results = [du for du in results if du["hit"]]
         if len(hit_results) > 0:
             ret = min(hit_results, key=lambda du: du["t"])
@@ -121,13 +123,15 @@ class Cube:
         self.cross_product = np.zeros((self.faces.shape[0]*2*3,), np.float64)
         self.cross_a = np.zeros_like(self.cross_product, np.float64)
         self.cross_b = np.zeros_like(self.cross_product, np.float64)
+        self.s_holder = np.zeros((3,), np.float64)
 
     def visualize(self):
         self.mesh.show()
 
     def hit_faster(self, ray):
         results = triangle_ray_intersection_grouping(ray, self.triangles, self.e1e2,
-                                                     self.cross_product, self.cross_a, self.cross_b)
+                                                     self.cross_product, self.cross_a,
+                                                     self.cross_b, self.s_holder)
         hit_results = [du for du in results if du["hit"]]
         if len(hit_results) > 0:
             ret = min(hit_results, key=lambda du: du["t"])
