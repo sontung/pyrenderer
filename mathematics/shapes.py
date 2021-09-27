@@ -30,13 +30,14 @@ class Quad:
         self.bounds = BBox(None, None)
         self.bounds.from_vertices(self.vertices)
         self.data = {}
-        self.e1e2 = []
         self.triangles = []
+        self.first_vertices = []
+        self.e2 = []
+        self.e1 = []
         for i in range(self.faces.shape[0]):
             triangle = self.faces[i]
             e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
             e2 = self.vertices[triangle[2]]-self.vertices[triangle[0]]
-            self.e1e2.extend([e1, e2])
             if i not in self.data:
                 self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
                                 self.vertices[triangle[2]]-self.vertices[triangle[0]]]
@@ -44,19 +45,22 @@ class Quad:
                                    self.vertices[triangle[1]],
                                    self.vertices[triangle[2]],
                                    self.data[i]])
-        self.e1e2 = np.hstack(self.e1e2)
-        self.cross_product = np.zeros((self.faces.shape[0]*2*3,), np.float64)
-        self.cross_a = np.zeros_like(self.cross_product, np.float64)
-        self.cross_b = np.zeros_like(self.cross_product, np.float64)
-        self.s_holder = np.zeros((3,), np.float64)
+            self.first_vertices.append(self.vertices[triangle[0]])
+            self.e2.append(e2)
+            self.e1.append(e1)
+
+        self.q_array = np.zeros((self.faces.shape[0]*3,), np.float64)
+        self.r_array = np.zeros((self.faces.shape[0]*3,), np.float64)
+        self.first_vertices = np.hstack(self.first_vertices)
+        self.e2 = np.hstack(self.e2)
+        self.e1 = np.hstack(self.e1)
 
     def visualize(self):
         self.mesh.show()
 
     def hit_faster(self, ray):
-        results = triangle_ray_intersection_grouping(ray, self.triangles, self.e1e2,
-                                                     self.cross_product, self.cross_a, self.cross_b,
-                                                     self.s_holder)
+        results = triangle_ray_intersection_grouping(ray, self.triangles, self.q_array, self.r_array,
+                                                     self.first_vertices, self.e1, self.e2)
         hit_results = [du for du in results if du["hit"]]
         if len(hit_results) > 0:
             ret = min(hit_results, key=lambda du: du["t"])
@@ -105,13 +109,14 @@ class Cube:
         self.bounds = BBox(None, None)
         self.bounds.from_vertices(self.vertices)
         self.data = {}
-        self.e1e2 = []
         self.triangles = []
+        self.e2 = []
+        self.e1 = []
+        self.first_vertices = []
         for i in range(self.faces.shape[0]):
             triangle = self.faces[i]
             e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
             e2 = self.vertices[triangle[2]]-self.vertices[triangle[0]]
-            self.e1e2.extend([e1, e2])
             if i not in self.data:
                 self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
                                 self.vertices[triangle[2]]-self.vertices[triangle[0]]]
@@ -119,19 +124,21 @@ class Cube:
                                    self.vertices[triangle[1]],
                                    self.vertices[triangle[2]],
                                    self.data[i]])
-        self.e1e2 = np.hstack(self.e1e2)
-        self.cross_product = np.zeros((self.faces.shape[0]*2*3,), np.float64)
-        self.cross_a = np.zeros_like(self.cross_product, np.float64)
-        self.cross_b = np.zeros_like(self.cross_product, np.float64)
-        self.s_holder = np.zeros((3,), np.float64)
+            self.first_vertices.append(self.vertices[triangle[0]])
+            self.e2.append(e2)
+            self.e1.append(e1)
+        self.q_array = np.zeros((self.faces.shape[0]*3,), np.float64)
+        self.r_array = np.zeros((self.faces.shape[0]*3,), np.float64)
+        self.e2 = np.hstack(self.e2)
+        self.e1 = np.hstack(self.e1)
+        self.first_vertices = np.hstack(self.first_vertices)
 
     def visualize(self):
         self.mesh.show()
 
     def hit_faster(self, ray):
-        results = triangle_ray_intersection_grouping(ray, self.triangles, self.e1e2,
-                                                     self.cross_product, self.cross_a,
-                                                     self.cross_b, self.s_holder)
+        results = triangle_ray_intersection_grouping(ray, self.triangles, self.q_array, self.r_array,
+                                                     self.first_vertices, self.e1, self.e2)
         hit_results = [du for du in results if du["hit"]]
         if len(hit_results) > 0:
             ret = min(hit_results, key=lambda du: du["t"])

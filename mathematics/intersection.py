@@ -68,27 +68,33 @@ def triangle_ray_intersection_wo_cross(ray, q, r, a, e2r, s):
 
 
 # @profile
-def triangle_ray_intersection_grouping(ray, triangles, e1e2, cross_holder, cross_a, cross_b,
-                                       s_holder):
-    all_s = np.zeros((len(triangles), 3), np.float64)
-    for idx, vertices in enumerate(triangles):
-        p0 = vertices[0]
-        e1 = vertices[3][0]
-        e2 = vertices[3][1]
-        fast_subtract2(ray.position, p0, s_holder)
-        cross_a[idx*6: idx*6+3] = ray.direction
-        cross_a[idx*6+3: idx*6+6] = s_holder
-        cross_b[idx*6: idx*6+3] = e2
-        cross_b[idx*6+3: idx*6+6] = e1
-        all_s[idx] = s_holder
-    cross_product2(cross_a, cross_b, cross_holder)
-    all_crosses = cross_holder.reshape((-1, 3))
-    # v = cross_product(np.hstack(cross_a), np.hstack(cross_b))
-    a_e2r = fast_dot3(e1e2, all_crosses.reshape((e1e2.shape[0],)))
+def triangle_ray_intersection_grouping(ray, triangles, q_array, r_array, p0_array,
+                                       e1_array, e2_array):
+    nb_triangles = len(triangles)
+    res = np.zeros((nb_triangles*3,), np.float64)
+    try:
+        u1 = ray.position_tile[nb_triangles]
+        u2 = ray.direction_tile[nb_triangles]
+    except KeyError:
+        u1 = np.tile(ray.position, nb_triangles)
+        u2 = np.tile(ray.direction, nb_triangles)
+        ray.direction_tile[nb_triangles] = u2
+        ray.position_tile[nb_triangles] = u1
+    fast_subtract2(u1, p0_array, res)
+    all_s = res.reshape((nb_triangles, 3))
+
+    cross_product2(u2, e2_array, q_array)
+    cross_product2(res, e1_array, r_array)
+    a_array = fast_dot3(e1_array, q_array)
+    e2r_array = fast_dot3(e2_array, r_array)
+
+    q_array = q_array.reshape((-1, 3))
+    r_array = r_array.reshape((-1, 3))
+
     results = [triangle_ray_intersection_wo_cross(ray,
-                                                  all_crosses[i],
-                                                  all_crosses[i+1],
-                                                  a_e2r[i], a_e2r[i+1], all_s[i//2],
+                                                  q_array[i],
+                                                  r_array[i],
+                                                  a_array[i], e2r_array[i], all_s[i],
                                                   )
-               for i in range(0, len(triangles)*2, 2)]
+               for i in range(nb_triangles)]
     return results

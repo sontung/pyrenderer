@@ -39,7 +39,7 @@ def fast_subtract(x, ty):
 
 @njit("(f8[:], f8[:], f8[:])")
 def fast_subtract2(x, ty, s):
-    for i in range(3):
+    for i in range(x.shape[0]):
         s[i] = x[i]-ty[i]
 
 

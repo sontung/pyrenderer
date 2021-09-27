@@ -38,29 +38,12 @@ class Scene:
         self.tree.build(self.primitives)
         self.tree_small.build(self.bvh_compatible_prims)
 
-    def hit_slow(self, ray):
-        ret = self.tree_small.hit(ray)
-        for prim in self.bvh_not_compatible_prims:
-            ret2 = prim.hit(ray)
-            if ret2["hit"] and ret2["t"] < ret["t"]:
-                ret = ret2
-        return ret
-
-    def hit2(self, ray):
+    def hit_faster(self, ray):
         ret = self.tree_small.hit(ray)
         ret2 = self.aggregator.hit(ray)
         if ret2["hit"] and ret2["t"] < ret["t"]:
             ret = ret2
         return ret
-
-    # @profile
-    def hit_faster(self, ray):
-        u1 = self.hit2(ray)
-        # u2 = self.hit_slow(ray)
-        # assert u1["hit"] == u2["hit"]
-        # if u1["hit"]:
-        #     assert abs(u1["t"] - u2["t"]) < 0.1
-        return u1
 
     def hit(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": MAX_F,
