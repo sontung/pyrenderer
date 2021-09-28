@@ -67,8 +67,8 @@ def main_profile():
     image = np.zeros((x_dim, y_dim, 3), dtype=np.float64)
     pr = cProfile.Profile()
     pr.enable()
-    for i in range(0, x_dim, 50):
-        for j in range(0, y_dim, 50):
+    for i in range(0, x_dim, 100):
+        for j in range(0, y_dim, 100):
             image[i, j] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
     s = io.StringIO()
     sortby = 'time'

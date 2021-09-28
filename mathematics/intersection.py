@@ -1,5 +1,5 @@
 from .constants import EPS
-from .fast_op import fast_dot3, fast_subtract2, cross_product2, fast_dot, fast_div, not_zeros, nonzero, inv, multiply, in_bounds
+from .fast_op import fast_dot3, cross_product2, fast_subtract
 import numpy as np
 
 
@@ -38,7 +38,6 @@ def triangle_ray_intersection(vertices, ray):
     return ret
 
 
-# @profile
 def triangle_ray_intersection_wo_cross(ray, a, e2r, sq, rdr):
     ret = {"hit": False, "t": 0.0}
 
@@ -65,22 +64,9 @@ def triangle_ray_intersection_wo_cross(ray, a, e2r, sq, rdr):
     # ret.normal = (1.0-u-v)*v_0.normal+u*v_1.normal+v*v_2.normal
     return ret
 
-# @profile
-def vectorized_computation(a_array, e2r_array, ray_bound):
-    res2 = np.zeros_like(a_array, np.int8)
-    not_zeros(a_array, res2)
-    indices = nonzero(res2)[0]
-    a_array = a_array[indices]
-    inv(a_array)
-    multiply(e2r_array, a_array)
-    in_bounds(e2r_array, res2, EPS, ray_bound)
-    indices = nonzero(res2)[0]
-    a_array = a_array[indices]
 
-
-# @profile
-def triangle_ray_intersection_grouping(ray, triangles, nb_triangles, s_array, q_array, r_array, p0_array,
-                                       e1_array, e2_array):
+def triangle_ray_intersection_grouping(ray, nb_triangles, s_array, q_array, r_array, p0_array,
+                                       e1_array, e2_array, a_array, e2r_array, sq_array, rdr_array):
     try:
         u1 = ray.position_tile[nb_triangles]
         u2 = ray.direction_tile[nb_triangles]
@@ -89,14 +75,15 @@ def triangle_ray_intersection_grouping(ray, triangles, nb_triangles, s_array, q_
         u2 = np.tile(ray.direction, nb_triangles)
         ray.direction_tile[nb_triangles] = u2
         ray.position_tile[nb_triangles] = u1
-    fast_subtract2(u1, p0_array, s_array)
 
+    fast_subtract(u1, p0_array, s_array)
     cross_product2(u2, e2_array, q_array)
     cross_product2(s_array, e1_array, r_array)
-    a_array = fast_dot3(e1_array, q_array)
-    e2r_array = fast_dot3(e2_array, r_array)
-    sq_array = fast_dot3(s_array, q_array)
-    rdr_array = fast_dot3(u2, r_array)
+
+    fast_dot3(e1_array, q_array, a_array)
+    fast_dot3(e2_array, r_array, e2r_array)
+    fast_dot3(s_array, q_array, sq_array)
+    fast_dot3(u2, r_array, rdr_array)
 
     results = [triangle_ray_intersection_wo_cross(ray,
                                                   a_array[i],
@@ -104,5 +91,4 @@ def triangle_ray_intersection_grouping(ray, triangles, nb_triangles, s_array, q_
                                                   sq_array[i],
                                                   rdr_array[i])
                for i in range(nb_triangles)]
-    # vectorized_computation(a_array, e2r_array, ray.bounds[1])
     return results

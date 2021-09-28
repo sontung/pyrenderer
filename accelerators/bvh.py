@@ -213,7 +213,7 @@ class BVH:
                 self.nodes[i].box.enclose(self.primitives[j].bounds)
 
     def hit_helper(self, ray, node_id):
-        if self.nodes[node_id].is_leaf() or self.nodes[node_id].box.is_empty():
+        if self.nodes[node_id].is_leaf():
             start = self.nodes[node_id].start
             size = self.nodes[node_id].size
             for i in range(start, start+size):
@@ -228,6 +228,7 @@ class BVH:
             self.hit_helper(ray, self.nodes[node_id].right)
 
     def hit(self, ray):
-        self.trace = {"origin": ray.position, "hit": False, "t": MAX_F}
+        self.trace["hit"] = False
+        self.trace["t"] = MAX_F
         self.hit_helper(ray, 0)
         return self.trace

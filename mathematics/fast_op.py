@@ -55,21 +55,15 @@ def fast_dot(x, ty):
     return res
 
 
-@njit("f8[:](f8[:], f8[:])")
-def fast_dot3(x, ty):
-    res = np.zeros((x.shape[0]//3), np.float64)
+@njit("(f8[:], f8[:], f8[:])")
+def fast_dot3(x, ty, res):
     for i in range(0, x.shape[0], 3):
         res[i//3] = x[i]*ty[i]+x[i+1]*ty[i+1]+x[i+2]*ty[i+2]
     return res
 
 
-@njit("f8[:](f8[:], f8[:])")
-def fast_subtract(x, ty):
-    return x-ty
-
-
 @njit("(f8[:], f8[:], f8[:])")
-def fast_subtract2(x, ty, s):
+def fast_subtract(x, ty, s):
     for i in range(x.shape[0]):
         s[i] = x[i]-ty[i]
 
@@ -88,6 +82,7 @@ def cross_product(x, y, res):
         res[i*3] = x[i*3+1]*y[i*3+2] - x[i*3+2]*y[i*3+1]
         res[i*3+1] = x[i*3+2]*y[i*3] - x[i*3]*y[i*3+2]
         res[i*3+2] = x[i*3]*y[i*3+1] - x[i*3+1]*y[i*3]
+
 
 @guvectorize([(float64, float64, float64)], '(),()->()')
 def fast_div(x, y, res):

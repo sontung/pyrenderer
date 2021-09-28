@@ -38,6 +38,7 @@ class Scene:
         self.tree.build(self.primitives)
         self.tree_small.build(self.bvh_compatible_prims)
 
+    # @profile
     def hit_faster(self, ray):
         ret = self.tree_small.hit(ray)
         ret2 = self.aggregator.hit(ray)

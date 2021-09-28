@@ -15,6 +15,10 @@ class Aggregator:
         self.q_array = []
         self.r_array = []
         self.s_array = []
+        self.a_array = []
+        self.e2r_array = []
+        self.sq_array = []
+        self.rdr_array = []
 
     def update(self):
         self.triangles = []
@@ -41,6 +45,10 @@ class Aggregator:
         self.first_vertices = np.hstack(self.first_vertices)
         self.e2 = np.hstack(self.e2)
         self.e1 = np.hstack(self.e1)
+        self.a_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.e2r_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
 
     def push(self, primitive):
         if self.vertices is None:
@@ -58,9 +66,10 @@ class Aggregator:
         self.update()
 
     def hit(self, ray):
-        results = triangle_ray_intersection_grouping(ray, self.triangles, len(self.triangles),
+        results = triangle_ray_intersection_grouping(ray, len(self.triangles),
                                                      self.s_array, self.q_array, self.r_array,
-                                                     self.first_vertices, self.e1, self.e2)
+                                                     self.first_vertices, self.e1, self.e2, self.a_array,
+                                                     self.e2r_array, self.sq_array, self.rdr_array)
         hit_results = [(du, idx) for idx, du in enumerate(results) if du["hit"]]
         if len(hit_results) > 0:
             ret, idx = min(hit_results, key=lambda du: du[0]["t"])
