@@ -12,7 +12,6 @@ class Scene:
         self.vertices = None
         self.faces = None
         self.mesh = None
-        self.tree = BVH()
         self.tree_small = BVH()
         self.bvh_compatible_prims = []
         self.bvh_not_compatible_prims = []
@@ -35,16 +34,23 @@ class Scene:
                 self.bvh_not_compatible_prims.append(prim)
             else:
                 self.bvh_compatible_prims.append(prim)
-        self.tree.build(self.primitives)
         self.tree_small.build(self.bvh_compatible_prims)
+        self.primitives = self.bvh_not_compatible_prims
+        self.primitives.extend([self.bvh_compatible_prims])
 
-    # @profile
     def hit_faster(self, ray):
         ret = self.tree_small.hit(ray)
         ret2 = self.aggregator.hit(ray)
         if ret2["hit"] and ret2["t"] < ret["t"]:
             ret = ret2
         return ret
+
+    def hit_delayed(self, ray, a_register):
+        from_bvh = self.tree_small.hit_delayed(ray)
+        prim_indices = [u for u in self.bvh_not_compatible_prims]
+        prim_indices.extend([u+len(self.bvh_not_compatible_prims) for u in from_bvh])
+        print(len(prim_indices))
+        a_register.register([], [])
 
     def hit(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": MAX_F,

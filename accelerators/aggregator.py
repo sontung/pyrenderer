@@ -19,6 +19,7 @@ class Aggregator:
         self.e2r_array = []
         self.sq_array = []
         self.rdr_array = []
+        self.res_array = []
 
     def update(self):
         self.triangles = []
@@ -34,8 +35,7 @@ class Aggregator:
                                 self.vertices[triangle[2]] - self.vertices[triangle[0]]]
             self.triangles.append([self.vertices[triangle[0]],
                                    self.vertices[triangle[1]],
-                                   self.vertices[triangle[2]],
-                                   self.data[i]])
+                                   self.vertices[triangle[2]]])
             self.first_vertices.append(self.vertices[triangle[0]])
             self.e2.append(e2)
             self.e1.append(e1)
@@ -49,6 +49,7 @@ class Aggregator:
         self.e2r_array = np.zeros((self.faces.shape[0],), np.float64)
         self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
         self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
 
     def push(self, primitive):
         if self.vertices is None:
@@ -66,14 +67,14 @@ class Aggregator:
         self.update()
 
     def hit(self, ray):
-        results = triangle_ray_intersection_grouping(ray, len(self.triangles),
-                                                     self.s_array, self.q_array, self.r_array,
-                                                     self.first_vertices, self.e1, self.e2, self.a_array,
-                                                     self.e2r_array, self.sq_array, self.rdr_array)
-        hit_results = [(du, idx) for idx, du in enumerate(results) if du["hit"]]
+        hit_results = triangle_ray_intersection_grouping(ray, len(self.triangles),
+                                                         self.s_array, self.q_array, self.r_array,
+                                                         self.first_vertices, self.e1, self.e2, self.a_array,
+                                                         self.e2r_array, self.sq_array, self.rdr_array, self.res_array)
         if len(hit_results) > 0:
             ret, idx = min(hit_results, key=lambda du: du[0]["t"])
             ret["bsdf"] = self.triangle2prim_info[idx][0]
             return ret
         else:
             return {"hit": False}
+

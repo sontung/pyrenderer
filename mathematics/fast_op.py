@@ -1,6 +1,8 @@
 import numpy as np
 from .constants import EPS
 from numba import njit, prange, guvectorize, float64
+import numba
+numba.config.NUMBA_DEFAULT_NUM_THREADS = 3
 
 
 @njit("(f8[:], f8[:], f8[:], u1[:], u1[:], f8, f8)")
@@ -59,7 +61,14 @@ def fast_dot(x, ty):
 def fast_dot3(x, ty, res):
     for i in range(0, x.shape[0], 3):
         res[i//3] = x[i]*ty[i]+x[i+1]*ty[i+1]+x[i+2]*ty[i+2]
-    return res
+
+
+@guvectorize([(float64[:], float64[:], float64[:])], '(n),(n)->(n)')
+def fast_dot3_vectorized(x, ty, res):
+    shape = res.shape[0] // 3
+    for i in prange(shape):
+        idx = i*3
+        res[i] = x[idx]*ty[idx]+x[idx+1]*ty[idx+1]+x[idx+2]*ty[idx+2]
 
 
 @njit("(f8[:], f8[:], f8[:])")
@@ -68,20 +77,30 @@ def fast_subtract(x, ty, s):
         s[i] = x[i]-ty[i]
 
 
-@njit("(f8[:], f8[:], f8[:])")
-def cross_product2(x, y, res):
-    for i in range(res.shape[0]//3):
-        res[i*3] = x[i*3+1]*y[i*3+2] - x[i*3+2]*y[i*3+1]
-        res[i*3+1] = x[i*3+2]*y[i*3] - x[i*3]*y[i*3+2]
-        res[i*3+2] = x[i*3]*y[i*3+1] - x[i*3+1]*y[i*3]
-
-
 @guvectorize([(float64[:], float64[:], float64[:])], '(n),(n)->(n)')
+def fast_subtract_vectorized(x, y, res):
+    for i in range(x.shape[0]):
+        res[i] = x[i]-y[i]
+
+
+@njit("(f8[:], f8[:], f8[:])")
 def cross_product(x, y, res):
-    for i in range(res.shape[0]//3):
-        res[i*3] = x[i*3+1]*y[i*3+2] - x[i*3+2]*y[i*3+1]
-        res[i*3+1] = x[i*3+2]*y[i*3] - x[i*3]*y[i*3+2]
-        res[i*3+2] = x[i*3]*y[i*3+1] - x[i*3+1]*y[i*3]
+    shape = res.shape[0] // 3
+    for i in range(shape):
+        idx = i*3
+        res[idx] = x[idx+1]*y[idx+2] - x[idx+2]*y[idx+1]
+        res[idx+1] = x[idx+2]*y[idx] - x[idx]*y[idx+2]
+        res[idx+2] = x[idx]*y[idx+1] - x[idx+1]*y[idx]
+
+
+@guvectorize([(float64[:], float64[:], float64[:])], '(n),(n)->(n)', target="cpu")
+def cross_product_vectorized(x, y, res):
+    shape = res.shape[0] // 3
+    for i in range(shape):
+        idx = i*3
+        res[idx] = x[idx+1]*y[idx+2] - x[idx+2]*y[idx+1]
+        res[idx+1] = x[idx+2]*y[idx] - x[idx]*y[idx+2]
+        res[idx+2] = x[idx]*y[idx+1] - x[idx+1]*y[idx]
 
 
 @guvectorize([(float64, float64, float64)], '(),()->()')

@@ -59,19 +59,18 @@ class Quad:
         self.e2r_array = np.zeros((self.faces.shape[0],), np.float64)
         self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
         self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
-
+        self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
 
     def visualize(self):
         self.mesh.show()
 
     def hit_faster(self, ray):
-        results = triangle_ray_intersection_grouping(ray, len(self.triangles),
-                                                     self.s_array, self.q_array, self.r_array,
-                                                     self.first_vertices, self.e1, self.e2, self.a_array,
-                                                     self.e2r_array, self.sq_array, self.rdr_array)
-        hit_results = [du for du in results if du["hit"]]
+        hit_results = triangle_ray_intersection_grouping(ray, len(self.triangles),
+                                                         self.s_array, self.q_array, self.r_array,
+                                                         self.first_vertices, self.e1, self.e2, self.a_array,
+                                                         self.e2r_array, self.sq_array, self.rdr_array, self.res_array)
         if len(hit_results) > 0:
-            ret = min(hit_results, key=lambda du: du["t"])
+            ret, _ = min(hit_results, key=lambda du: du[0]["t"])
             ret["bsdf"] = self.bsdf
             return ret
         else:
@@ -145,18 +144,18 @@ class Cube:
         self.e2r_array = np.zeros((self.faces.shape[0],), np.float64)
         self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
         self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
 
     def visualize(self):
         self.mesh.show()
 
     def hit_faster(self, ray):
-        results = triangle_ray_intersection_grouping(ray, len(self.triangles),
-                                                     self.s_array, self.q_array, self.r_array,
-                                                     self.first_vertices, self.e1, self.e2, self.a_array,
-                                                     self.e2r_array, self.sq_array, self.rdr_array)
-        hit_results = [du for du in results if du["hit"]]
+        hit_results = triangle_ray_intersection_grouping(ray, len(self.triangles),
+                                                         self.s_array, self.q_array, self.r_array,
+                                                         self.first_vertices, self.e1, self.e2, self.a_array,
+                                                         self.e2r_array, self.sq_array, self.rdr_array, self.res_array)
         if len(hit_results) > 0:
-            ret = min(hit_results, key=lambda du: du["t"])
+            ret, _ = min(hit_results, key=lambda du: du[0]["t"])
             ret["bsdf"] = self.bsdf
             return ret
         else:

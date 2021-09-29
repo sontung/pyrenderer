@@ -65,16 +65,14 @@ def main_profile():
     a_scene, a_camera = read_file("media/cornell-box/scene.json")
     x_dim, y_dim = a_camera.get_resolution()
     image = np.zeros((x_dim, y_dim, 3), dtype=np.float64)
-    pr = cProfile.Profile()
-    pr.enable()
-    for i in range(0, x_dim, 100):
-        for j in range(0, y_dim, 100):
+
+    import time
+    start = time.time()
+    for i in range(0, x_dim, 10):
+        for j in range(0, y_dim, 10):
             image[i, j] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
-    s = io.StringIO()
-    sortby = 'time'
-    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-    ps.print_stats(100)
-    print(s.getvalue())
+    print(f"method 1 completed in {time.time()-start}")
+
     return image
 
 
