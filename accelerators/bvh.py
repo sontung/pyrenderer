@@ -214,32 +214,24 @@ class BVH:
                 self.nodes[i].box.enclose(self.primitives[j].bounds)
         print(f"built BVH with {len(self.nodes)} nodes")
 
-    def hit_helper(self, ray, node_id, delayed=False):
+    # @profile
+    def hit_helper(self, ray, node_id):
         if self.nodes[node_id].is_leaf():
             start = self.nodes[node_id].start
             size = self.nodes[node_id].size
-            if delayed:
-                for i in range(start, start+size):
-                    self.prims_to_be_hit.append(i)
-            else:
-                for i in range(start, start+size):
-                    ret2 = self.primitives[i].hit(ray)
-                    if ret2["hit"] and ret2["t"] < self.trace["t"]:
-                        self.trace = ret2
+            for i in range(start, start+size):
+                ret2 = self.primitives[i].hit(ray)
+                if ret2["hit"] and ret2["t"] < self.trace["t"]:
+                    self.trace = ret2
         else:
             box_hit = self.nodes[node_id].box.hit(ray)
             if not box_hit["hit"]:
                 return
-            self.hit_helper(ray, self.nodes[node_id].left, delayed)
-            self.hit_helper(ray, self.nodes[node_id].right, delayed)
+            self.hit_helper(ray, self.nodes[node_id].left)
+            self.hit_helper(ray, self.nodes[node_id].right)
 
     def hit(self, ray):
         self.trace["hit"] = False
         self.trace["t"] = MAX_F
         self.hit_helper(ray, 0)
         return self.trace
-
-    def hit_delayed(self, ray):
-        self.prims_to_be_hit = []
-        self.hit_helper(ray, 0, True)
-        return self.prims_to_be_hit

@@ -60,6 +60,8 @@ class Quad:
         self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
         self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
         self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
+        for i in range(self.faces.shape[0]):
+            self.res_array[i*2] = -1.0
 
     def visualize(self):
         self.mesh.show()
@@ -145,6 +147,8 @@ class Cube:
         self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
         self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
         self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
+        for i in range(self.faces.shape[0]):
+            self.res_array[i*2] = -1.0
 
     def visualize(self):
         self.mesh.show()

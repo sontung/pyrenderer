@@ -68,10 +68,17 @@ def main_profile():
 
     import time
     start = time.time()
+    pr = cProfile.Profile()
+    pr.enable()
     for i in range(0, x_dim, 10):
         for j in range(0, y_dim, 10):
             image[i, j] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
     print(f"method 1 completed in {time.time()-start}")
+    s = io.StringIO()
+    sortby = 'time'
+    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    ps.print_stats(100)
+    print(s.getvalue())
 
     return image
 

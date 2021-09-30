@@ -45,13 +45,6 @@ class Scene:
             ret = ret2
         return ret
 
-    def hit_delayed(self, ray, a_register):
-        from_bvh = self.tree_small.hit_delayed(ray)
-        prim_indices = [u for u in self.bvh_not_compatible_prims]
-        prim_indices.extend([u+len(self.bvh_not_compatible_prims) for u in from_bvh])
-        print(len(prim_indices))
-        a_register.register([], [])
-
     def hit(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": MAX_F,
                "position": np.array([0.0, 0.0, 0.0])}

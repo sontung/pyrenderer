@@ -103,6 +103,11 @@ def cross_product_vectorized(x, y, res):
         res[idx+2] = x[idx]*y[idx+1] - x[idx+1]*y[idx]
 
 
-@guvectorize([(float64, float64, float64)], '(),()->()')
-def fast_div(x, y, res):
-    res = y/x
+@njit("f8[:](f8[:], i8)")
+def numba_tile(array, times):
+    return array.repeat(times).reshape((-1, times)).T.flatten()
+
+
+@njit("f8[:](f8[:], f8[:], f8)")
+def compute_pos(o, d, t):
+    return o+d*t

@@ -1,4 +1,5 @@
 import numpy as np
+from mathematics.constants import MAX_F
 from mathematics.intersection import triangle_ray_intersection_grouping
 
 
@@ -50,6 +51,8 @@ class Aggregator:
         self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
         self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
         self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
+        for i in range(self.faces.shape[0]):
+            self.res_array[i*2] = -1.0
 
     def push(self, primitive):
         if self.vertices is None:

@@ -1,7 +1,7 @@
 from .constants import EPS, MAX_F
-from .fast_op import fast_dot3, cross_product, cross_product_vectorized, fast_subtract, fast_subtract_vectorized
+from .fast_op import fast_dot3, cross_product, fast_subtract, numba_tile, compute_pos
 import numpy as np
-from numba import njit, guvectorize
+from numba import njit
 
 
 def triangle_ray_intersection(vertices, ray):
@@ -95,7 +95,8 @@ def triangle_ray_intersection_numba(ind, ray_bound, a, e2r, sq, rdr, res_holder)
 @njit("f8[:], f8[:], f8[:], i8, f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], f8[:], f8[:],")
 def triangle_ray_intersection_grouping_numba(u1, u2, ray_bound, nb_triangles,
                                              s_array, q_array, r_array, p0_array,
-                                             e1_array, e2_array, a_array, e2r_array, sq_array, rdr_array, res_holder):
+                                             e1_array, e2_array, a_array, e2r_array,
+                                             sq_array, rdr_array, res_holder):
 
     fast_subtract(u1, p0_array, s_array)
     cross_product(u2, e2_array, q_array)
@@ -116,8 +117,9 @@ def triangle_ray_intersection_grouping(ray, nb_triangles, s_array, q_array, r_ar
         u1 = ray.position_tile[nb_triangles]
         u2 = ray.direction_tile[nb_triangles]
     except KeyError:
-        u1 = np.tile(ray.position, nb_triangles)
-        u2 = np.tile(ray.direction, nb_triangles)
+        u1 = numba_tile(ray.position, nb_triangles)
+        u2 = numba_tile(ray.direction, nb_triangles)
+
         ray.position_tile[nb_triangles] = u1
         ray.direction_tile[nb_triangles] = u2
 
@@ -135,7 +137,7 @@ def triangle_ray_intersection_grouping(ray, nb_triangles, s_array, q_array, r_ar
             ret = dict()
             ret["t"] = res_holder[i*2+1]
             ret["origin"] = ray.position
-            ret["position"] = ray.position + res_holder[i*2+1] * ray.direction
+            ret["position"] = compute_pos(ray.position, ray.direction, res_holder[i*2+1])
             ret["hit"] = True
             results.append((ret, i))
 
