@@ -20,11 +20,11 @@ def compute_t(a_e2r, f_vec, t_vec, first_compare, second_compare, bound, eps):
                 f_vec[i] = f
 
 
-@njit("(f8[:], i1[:])")
+@njit("(f8[:], b1[:])")
 def not_zeros(x, res):
     for i in range(x.shape[0]):
         if x[i] < -EPS or x[i] > EPS:
-            res[i] = 1
+            res[i] = False
 
 
 @njit("(f8[:], i1[:], f8, f8)")

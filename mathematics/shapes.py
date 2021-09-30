@@ -60,8 +60,9 @@ class Quad:
         self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
         self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
         self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
-        for i in range(self.faces.shape[0]):
-            self.res_array[i*2] = -1.0
+        self.a_compare_array = np.zeros(self.a_array.shape, np.bool8)
+        for i in range(self.a_compare_array.shape[0]):
+            self.a_compare_array[i] = True
 
     def visualize(self):
         self.mesh.show()
@@ -70,6 +71,7 @@ class Quad:
         hit_results = triangle_ray_intersection_grouping(ray, len(self.triangles),
                                                          self.s_array, self.q_array, self.r_array,
                                                          self.first_vertices, self.e1, self.e2, self.a_array,
+                                                         self.a_compare_array,
                                                          self.e2r_array, self.sq_array, self.rdr_array, self.res_array)
         if len(hit_results) > 0:
             ret, _ = min(hit_results, key=lambda du: du[0]["t"])
@@ -147,8 +149,9 @@ class Cube:
         self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
         self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
         self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
-        for i in range(self.faces.shape[0]):
-            self.res_array[i*2] = -1.0
+        self.a_compare_array = np.zeros(self.a_array.shape, np.bool8)
+        for i in range(self.a_compare_array.shape[0]):
+            self.a_compare_array[i] = True
 
     def visualize(self):
         self.mesh.show()
@@ -157,6 +160,7 @@ class Cube:
         hit_results = triangle_ray_intersection_grouping(ray, len(self.triangles),
                                                          self.s_array, self.q_array, self.r_array,
                                                          self.first_vertices, self.e1, self.e2, self.a_array,
+                                                         self.a_compare_array,
                                                          self.e2r_array, self.sq_array, self.rdr_array, self.res_array)
         if len(hit_results) > 0:
             ret, _ = min(hit_results, key=lambda du: du[0]["t"])
