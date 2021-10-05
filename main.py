@@ -78,7 +78,7 @@ def main_profile():
     sortby = 'time'
     ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
     ps.print_stats(100)
-    print(s.getvalue())
+    # print(s.getvalue())
 
     return image
 
