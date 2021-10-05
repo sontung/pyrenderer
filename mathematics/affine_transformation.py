@@ -1,5 +1,7 @@
 from scipy.spatial.transform import Rotation as rot_mat_compute
+import pyrr.matrix44
 import numpy as np
+from math import radians
 
 
 def make_rotation_matrix(degrees, homo=True):
@@ -44,34 +46,28 @@ def make_transformation_matrix(transforms):
     if "position" in transforms:
         trans_mat = make_translation_matrix(transforms["position"])
         res = res @ trans_mat
-
     if "rotation" in transforms:
         rotation_mat = make_rotation_matrix(transforms["rotation"])
         res = res @ rotation_mat
-
     if "scale" in transforms:
         scale_mat = make_scale_matrix(transforms["scale"])
         res = res @ scale_mat
-
     return res
 
 
 if __name__ == '__main__':
     tr = {
-                "position": [
-                    0,
-                    2,
-                    0
-                ],
-                "scale": [
-                    2,
-                    4,
-                    2
-                ],
-                "rotation": [
-                    0,
-                    0,
-                    -180
-                ]
-            }
-    make_transformation_matrix(tr)
+        "rotation": [
+            0,
+            90,
+            90
+        ]
+    }
+    mat = make_transformation_matrix(tr)
+    vec = np.array([0, 1, 0, 1])
+    mat3 = pyrr.matrix44.create_from_eulers([radians(90), radians(90), radians(0)])
+    print(mat3 @ vec)
+    print(vec @ mat3)
+    u = vec[0]*mat3[:, 0] + vec[1]*mat3[:, 1] + vec[2]*mat3[:, 2] + vec[3]*mat3[:, 3]
+    print(u)
+    print(mat3)

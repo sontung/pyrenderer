@@ -1,5 +1,5 @@
 from .constants import EPS, MAX_F
-from .fast_op import fast_dot3, cross_product, fast_subtract, numba_tile, compute_pos, fast_subtract_vectorized
+from .fast_op import fast_dot3, cross_product, fast_subtract, numba_tile, compute_pos
 import numpy as np
 from numba import njit
 
@@ -33,33 +33,6 @@ def triangle_ray_intersection(vertices, ray):
 
     ray.bounds[1] = t
     ret["t"] = t
-    ret["position"] = ray.position+t*ray.direction
-    ret["hit"] = True
-    # ret.normal = (1.0-u-v)*v_0.normal+u*v_1.normal+v*v_2.normal
-    return ret
-
-
-def triangle_ray_intersection_wo_cross(ray, a, e2r, sq, rdr):
-    ret = {"hit": False, "t": 0.0}
-
-    if -EPS < a < EPS:
-        return ret
-    f = 1.0/a
-    t = f*e2r
-    if t > ray.bounds[1] or t < EPS:
-        return ret
-
-    u = f*sq
-    if u < 0.0:
-        return ret
-
-    v = f*rdr
-    if v < 0.0 or u+v > 1.0:
-        return ret
-
-    ray.bounds[1] = t
-    ret["t"] = t
-    ret["origin"] = ray.position
     ret["position"] = ray.position+t*ray.direction
     ret["hit"] = True
     # ret.normal = (1.0-u-v)*v_0.normal+u*v_1.normal+v*v_2.normal
@@ -118,7 +91,6 @@ def triangle_ray_intersection_grouping(ray, nb_triangles, s_array, q_array, r_ar
     except KeyError:
         u1 = numba_tile(ray.position, nb_triangles)
         u2 = numba_tile(ray.direction, nb_triangles)
-        s_array = np.subtract(u1, p0_array)
         ray.position_tile[nb_triangles] = u1
         ray.direction_tile[nb_triangles] = u2
 
@@ -128,10 +100,6 @@ def triangle_ray_intersection_grouping(ray, nb_triangles, s_array, q_array, r_ar
                                              e1_array, e2_array, a_array, e2r_array,
                                              sq_array, rdr_array, res_holder
                                              )
-
-    triangle_ray_intersection_grouping_numba.inspect_types()
-    import sys
-    sys.exit()
 
     results = []
     tmin = MAX_F

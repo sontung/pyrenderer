@@ -1,3 +1,4 @@
+import sys
 import time
 
 from io_utils.read_tungsten import read_file
@@ -30,12 +31,18 @@ def main():
     a_scene, a_camera = read_file("media/cornell-box/scene.json")
     x_dim, y_dim = a_camera.get_resolution()
     image = np.zeros((x_dim, y_dim, 3), dtype=np.float64)
-
-    works = [(i, j) for i in range(x_dim) for j in range(y_dim)]
-    results = Parallel(n_jobs=6)(delayed(trace_pixel_par)(i, j, x_dim, y_dim, a_camera, a_scene)
-                                 for i, j in tqdm(works))
-    for val, i, j in results:
-        image[x_dim-1-j, i] = val
+    if SEQUENTIAL:
+        with tqdm(total=x_dim * y_dim, desc="rendering") as pbar:
+            for i in range(x_dim):
+                for j in range(y_dim):
+                    image[x_dim-1-j, i] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
+                    pbar.update(1)
+    else:
+        works = [(i, j) for i in range(x_dim) for j in range(y_dim)]
+        results = Parallel(n_jobs=6)(delayed(trace_pixel_par)(i, j, x_dim, y_dim, a_camera, a_scene)
+                                     for i, j in tqdm(works, desc="rendering"))
+        for val, i, j in results:
+            image[x_dim-1-j, i] = val
 
     image *= 255
     image = image.astype(np.uint8)
@@ -51,20 +58,25 @@ def main_debug():
     lines = []
     points = []
     colors = []
-    for i in range(0, x_dim, 100):
-        for j in range(0, y_dim, 100):
+    for i in range(0, x_dim, 10):
+        for j in range(0, y_dim, 10):
             x = (i + random.random()) / float(x_dim)
             y = (j + random.random()) / float(y_dim)
             ray = a_camera.generate_ray(np.array([x, y]))
-            ret = a_scene.hit(ray)
+            ret = a_scene.hit_faster(ray)
             if not ret["hit"]:
                 points.extend([ray.position, ray.position+5*ray.direction])
                 lines.append([len(points)-2, len(points)-1])
                 colors.append([1, 0, 0])
             else:
-                points.extend([ray.position, ray.position+ret["t"]*ray.direction])
+                # points.extend([ray.position, ray.position+ret["t"]*ray.direction])
+                # lines.append([len(points)-2, len(points)-1])
+                # colors.append([0, 1, 0])
+
+                points.extend([ret["position"], ret["position"]+0.1*ret["normal"]])
                 lines.append([len(points)-2, len(points)-1])
-                colors.append([0, 1, 0])
+                colors.append([1, 1, 0])
+
     line_set = o3d.geometry.LineSet()
     line_set.points = o3d.utility.Vector3dVector(points)
     line_set.lines = o3d.utility.Vector2iVector(lines)
@@ -99,10 +111,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--debug', type=bool, default=False, help='Debug mode')
     parser.add_argument('-p', '--profile', type=bool, default=False, help='Profile mode')
+    parser.add_argument('-s', '--sequential', type=bool, default=False, help='Not to run in parallel')
 
     args = vars(parser.parse_args())
     DEBUG_MODE = args['debug']
     PROFILE_MODE = args['profile']
+    SEQUENTIAL = args['sequential']
     if DEBUG_MODE:
         main_debug()
     elif PROFILE_MODE:

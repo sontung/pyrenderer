@@ -7,6 +7,7 @@ class Aggregator:
     def __init__(self):
         self.vertices = None
         self.faces = None
+        self.normals = None
         self.triangles = []
         self.data = {}
         self.triangle2prim_info = {}
@@ -57,6 +58,7 @@ class Aggregator:
     def push(self, primitive):
         if self.vertices is None:
             self.vertices = primitive.vertices
+            self.normals = primitive.normal_vectors
             self.faces = primitive.faces
             for i in range(self.faces.shape[0]):
                 self.triangle2prim_info[i] = [primitive.bsdf]
@@ -64,6 +66,7 @@ class Aggregator:
             increment = self.vertices.shape[0]
             old_faces_size = self.faces.shape[0]
             self.vertices = np.vstack([self.vertices, primitive.vertices])
+            self.normals = np.vstack([self.normals, primitive.normal_vectors])
             self.faces = np.vstack([self.faces, primitive.faces+increment])
             for i in range(old_faces_size, self.faces.shape[0]):
                 self.triangle2prim_info[i] = [primitive.bsdf]
@@ -77,6 +80,7 @@ class Aggregator:
         if len(hit_results) > 0:
             ret, idx = min(hit_results, key=lambda du: du[0]["t"])
             ret["bsdf"] = self.triangle2prim_info[idx][0]
+            ret["normal"] = self.normals[idx]
             return ret
         else:
             return {"hit": False}

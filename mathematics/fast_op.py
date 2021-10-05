@@ -1,6 +1,6 @@
 import numpy as np
 from .constants import EPS
-from numba import njit, prange, guvectorize, float64, vectorize
+from numba import njit, guvectorize, float64, vectorize
 import numba
 numba.config.NUMBA_DEFAULT_NUM_THREADS = 3
 
@@ -66,14 +66,9 @@ def fast_dot3(x, ty, res):
 @guvectorize([(float64[:], float64[:], float64[:])], '(n),(n)->(n)')
 def fast_dot3_vectorized(x, ty, res):
     shape = res.shape[0] // 3
-    for i in prange(shape):
+    for i in range(shape):
         idx = i*3
         res[i] = x[idx]*ty[idx]+x[idx+1]*ty[idx+1]+x[idx+2]*ty[idx+2]
-
-
-@vectorize([float64(float64, float64)], target="parallel")
-def sub_ufunc(a, b):
-    return a - b
 
 
 @njit("(f8[:], f8[:], f8[:])")

@@ -49,6 +49,9 @@ class Camera:
         ray_dir_world_space = to_homogeneous_vector(ray_dir) @ self.iview
         ray_origin_world_space = to_homogeneous_vector(ray_origin) @ self.iview
 
+        # ray_dir_world_space = self.view @ to_homogeneous_vector(ray_dir)
+        # ray_origin_world_space = self.view @ to_homogeneous_vector(ray_origin)
+
         final_ray = ray_dir_world_space - ray_origin_world_space
         final_ray = normalize_vector(final_ray)
         a_ray = Ray(ray_origin_world_space[:3], final_ray[:3], 8)

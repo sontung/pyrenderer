@@ -3,7 +3,7 @@ import sys
 
 
 # @profile
-def ray_casting(ray, scene):
+def ray_casting(ray, scene, normal_vis=True):
     ret = scene.hit_faster(ray)
 
     if not ret["hit"]:
@@ -14,8 +14,6 @@ def ray_casting(ray, scene):
     else:
         if ret["bsdf"].emitting_light:
             return ret["bsdf"].evaluate()
+        if normal_vis:
+            return np.abs(ret["normal"])
         return ret["bsdf"].rho
-
-
-def ray_casting_delayed(ray, scene, a_register):
-    ret = scene.hit_delayed(ray, a_register)

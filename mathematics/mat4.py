@@ -37,3 +37,18 @@ def rotate_z_to(vector):
     y[1] = _z
     y[2] = -_y
     return y
+
+
+def divide(mat):
+    for i in range(mat.shape[0]):
+        mat[i] = mat[i]/mat[i, 3]
+
+
+def normalize(mat):
+    for i in range(mat.shape[0]):
+        mat[i] = normalize_vector(mat[i])
+
+
+def transform(mat, trans_mat):
+    for i in range(mat.shape[0]):
+        mat[i] = mat[i] @ trans_mat

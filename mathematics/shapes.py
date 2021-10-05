@@ -1,11 +1,8 @@
 import numpy as np
 import trimesh
-from .constants import MAX_F
-import sys
-from .intersection import triangle_ray_intersection, triangle_ray_intersection_grouping
-from .affine_transformation import make_transformation_matrix
-from .vec3 import normalize_vector
+from .intersection import triangle_ray_intersection_grouping
 from .bbox import BBox
+from .vec3 import normalize_vector
 
 
 class Quad:
@@ -20,14 +17,9 @@ class Quad:
             [0, 1, 2],
             [2, 3, 0]
         ], np.uint)
-        normal_vector = np.array([0, 1, 0, 1], np.float64)
+        normal_vector = np.array([0, 1, 0], np.float64)
         self.trans_mat = trans_mat
-        normal_vector = normal_vector @ self.trans_mat
-        normal_vector = normal_vector/normal_vector[3]
-        normal_vector = normal_vector[:3]
-        normal_vector = normalize_vector(normal_vector)
         self.normal_vectors = np.tile(normal_vector, (default_faces.shape[0], 1))
-
         self.mesh = trimesh.Trimesh(vertices=default_vertices,
                                     faces=default_faces,
                                     process=False)
@@ -48,6 +40,7 @@ class Quad:
             triangle = self.faces[i]
             e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
             e2 = self.vertices[triangle[2]]-self.vertices[triangle[0]]
+            self.normal_vectors[i] = -normalize_vector(np.cross(e1, e2))
             if i not in self.data:
                 self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
                                 self.vertices[triangle[2]]-self.vertices[triangle[0]]]
@@ -72,11 +65,6 @@ class Quad:
         self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
         for i in range(self.faces.shape[0]):
             self.res_array[i*2] = -1.0
-        self.compute_normals()
-
-    def compute_normals(self):
-        if self.normals is None:
-            self.normals = np.zeros_like(self.faces, np.float64)
 
     def visualize(self):
         self.mesh.show()
@@ -87,8 +75,9 @@ class Quad:
                                                          self.first_vertices, self.e1, self.e2, self.a_array,
                                                          self.e2r_array, self.sq_array, self.rdr_array, self.res_array)
         if len(hit_results) > 0:
-            ret, _ = min(hit_results, key=lambda du: du[0]["t"])
+            ret, tri_ind = min(hit_results, key=lambda du: du[0]["t"])
             ret["bsdf"] = self.bsdf
+            ret["normal"] = self.normal_vectors[tri_ind]
             return ret
         else:
             return {"hit": False}
@@ -122,6 +111,23 @@ class Cube:
             [20, 23, 22]
         ], np.uint)
         self.trans_mat = trans_mat
+
+        self.normal_vectors = np.array([
+            [0, -1, 0],
+            [0, -1, 0],
+            [0, 1, 0],
+            [0, 1, 0],
+            [0, 0, -1],
+            [0, 0, -1],
+            [0, 0, 1],
+            [0, 0, 1],
+            [-1, 0, 0],
+            [-1, 0, 0],
+            [1, 0, 0],
+            [1, 0, 0],
+        ], np.float64)
+        self.trans_mat = trans_mat
+
         self.mesh = trimesh.Trimesh(vertices=default_vertices,
                                     faces=default_faces,
                                     process=False)
@@ -141,6 +147,7 @@ class Cube:
             triangle = self.faces[i]
             e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
             e2 = self.vertices[triangle[2]]-self.vertices[triangle[0]]
+            self.normal_vectors[i] = normalize_vector(np.cross(e1, e2))
             if i not in self.data:
                 self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
                                 self.vertices[triangle[2]]-self.vertices[triangle[0]]]
@@ -174,34 +181,12 @@ class Cube:
                                                          self.first_vertices, self.e1, self.e2, self.a_array,
                                                          self.e2r_array, self.sq_array, self.rdr_array, self.res_array)
         if len(hit_results) > 0:
-            ret, _ = min(hit_results, key=lambda du: du[0]["t"])
+            ret, tri_ind = min(hit_results, key=lambda du: du[0]["t"])
             ret["bsdf"] = self.bsdf
+            ret["normal"] = self.normal_vectors[tri_ind]
             return ret
         else:
             return {"hit": False}
 
     def hit(self, ray):
         return self.hit_faster(ray)
-
-
-if __name__ == '__main__':
-    tr = {
-        "position": [
-            0,
-            2,
-            0
-        ],
-        "scale": [
-            2,
-            4,
-            2
-        ],
-        "rotation": [
-            0,
-            0,
-            -180
-        ]
-    }
-    mat = make_transformation_matrix(tr)
-    a_quad = Quad(mat)
-    a_quad.visualize()
