@@ -1,3 +1,5 @@
+import time
+
 from io_utils.read_tungsten import read_file
 from core.tracing import ray_casting
 from tqdm import tqdm
@@ -6,6 +8,7 @@ import numpy as np
 import random
 import argparse
 import cProfile, pstats, io
+from joblib import Parallel, delayed
 import open3d as o3d
 
 
@@ -16,15 +19,24 @@ def trace_pixel(x, y, w, h, a_camera, a_scene):
     return ray_casting(ray, a_scene)
 
 
+def trace_pixel_par(x, y, w, h, a_camera, a_scene):
+    u = (x+random.random())/float(w)
+    v = (y+random.random())/float(h)
+    ray = a_camera.generate_ray(np.array([u, v]))
+    return ray_casting(ray, a_scene), x, y
+
+
 def main():
     a_scene, a_camera = read_file("media/cornell-box/scene.json")
     x_dim, y_dim = a_camera.get_resolution()
     image = np.zeros((x_dim, y_dim, 3), dtype=np.float64)
-    with tqdm(total=x_dim * y_dim, desc="rendering") as pbar:
-        for i in range(x_dim):
-            for j in range(y_dim):
-                image[j, i] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
-                pbar.update(1)
+
+    works = [(i, j) for i in range(x_dim) for j in range(y_dim)]
+    results = Parallel(n_jobs=6)(delayed(trace_pixel_par)(i, j, x_dim, y_dim, a_camera, a_scene)
+                                 for i, j in tqdm(works))
+    for val, i, j in results:
+        image[x_dim-1-j, i] = val
+
     image *= 255
     image = image.astype(np.uint8)
     imsave("test.png", image)
@@ -62,24 +74,24 @@ def main_debug():
 
 
 def main_profile():
+
     a_scene, a_camera = read_file("media/cornell-box/scene.json")
     x_dim, y_dim = a_camera.get_resolution()
     image = np.zeros((x_dim, y_dim, 3), dtype=np.float64)
+    with tqdm(total=x_dim * y_dim, desc="rendering") as pbar:
+        for i in range(x_dim):
+            for j in range(y_dim):
+                image[j, i] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
+                pbar.update(1)
+    image *= 255
+    image = image.astype(np.uint8)
+    imsave("test.png", image)
 
-    import time
     start = time.time()
-    pr = cProfile.Profile()
-    pr.enable()
-    for i in range(0, x_dim, 10):
-        for j in range(0, y_dim, 10):
-            image[i, j] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
-    print(f"method 1 completed in {time.time()-start}")
-    s = io.StringIO()
-    sortby = 'time'
-    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-    ps.print_stats(100)
-    # print(s.getvalue())
-
+    works = [(i, j) for i in range(x_dim) for j in range(y_dim)]
+    from joblib import Parallel, delayed
+    Parallel(n_jobs=6)(delayed(trace_pixel)(i, j, x_dim, y_dim, a_camera, a_scene) for i, j in works)
+    print(f"parallel took {time.time()-start}")
     return image
 
 
