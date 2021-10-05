@@ -1,5 +1,5 @@
 from .constants import EPS, MAX_F
-from .fast_op import fast_dot3, cross_product, fast_subtract, numba_tile, compute_pos
+from .fast_op import fast_dot3, cross_product, fast_subtract, numba_tile, compute_pos, fast_subtract_vectorized
 import numpy as np
 from numba import njit
 
@@ -97,7 +97,6 @@ def triangle_ray_intersection_grouping_numba(u1, u2, ray_bound, nb_triangles,
                                              s_array, q_array, r_array, p0_array,
                                              e1_array, e2_array, a_array, e2r_array,
                                              sq_array, rdr_array, res_holder):
-
     fast_subtract(u1, p0_array, s_array)
     cross_product(u2, e2_array, q_array)
     cross_product(s_array, e1_array, r_array)
@@ -119,7 +118,7 @@ def triangle_ray_intersection_grouping(ray, nb_triangles, s_array, q_array, r_ar
     except KeyError:
         u1 = numba_tile(ray.position, nb_triangles)
         u2 = numba_tile(ray.direction, nb_triangles)
-
+        s_array = np.subtract(u1, p0_array)
         ray.position_tile[nb_triangles] = u1
         ray.direction_tile[nb_triangles] = u2
 
@@ -129,6 +128,11 @@ def triangle_ray_intersection_grouping(ray, nb_triangles, s_array, q_array, r_ar
                                              e1_array, e2_array, a_array, e2r_array,
                                              sq_array, rdr_array, res_holder
                                              )
+
+    triangle_ray_intersection_grouping_numba.inspect_types()
+    import sys
+    sys.exit()
+
     results = []
     tmin = MAX_F
     for i in range(nb_triangles):

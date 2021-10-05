@@ -11,6 +11,7 @@ class Ray:
         self.inv_direction = 1.0/self.direction
         self.position_tile = {}
         self.direction_tile = {}
+        self.s_array_cached = {}
 
     def reset_bounds(self):
         self.bounds = np.array([0.0, MAX_F])
