@@ -4,6 +4,7 @@ from .constants import MAX_F
 import sys
 from .intersection import triangle_ray_intersection, triangle_ray_intersection_grouping
 from .affine_transformation import make_transformation_matrix
+from .vec3 import normalize_vector
 from .bbox import BBox
 
 
@@ -19,7 +20,14 @@ class Quad:
             [0, 1, 2],
             [2, 3, 0]
         ], np.uint)
+        normal_vector = np.array([0, 1, 0, 1], np.float64)
         self.trans_mat = trans_mat
+        normal_vector = normal_vector @ self.trans_mat
+        normal_vector = normal_vector/normal_vector[3]
+        normal_vector = normal_vector[:3]
+        normal_vector = normalize_vector(normal_vector)
+        self.normal_vectors = np.tile(normal_vector, (default_faces.shape[0], 1))
+
         self.mesh = trimesh.Trimesh(vertices=default_vertices,
                                     faces=default_faces,
                                     process=False)
@@ -34,6 +42,8 @@ class Quad:
         self.first_vertices = []
         self.e2 = []
         self.e1 = []
+        self.normals = None
+
         for i in range(self.faces.shape[0]):
             triangle = self.faces[i]
             e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
@@ -62,6 +72,11 @@ class Quad:
         self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
         for i in range(self.faces.shape[0]):
             self.res_array[i*2] = -1.0
+        self.compute_normals()
+
+    def compute_normals(self):
+        if self.normals is None:
+            self.normals = np.zeros_like(self.faces, np.float64)
 
     def visualize(self):
         self.mesh.show()
