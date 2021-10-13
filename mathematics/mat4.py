@@ -1,6 +1,7 @@
-from .vec3 import normalize_vector
+from .vec3 import normalize_vector, to_homogeneous_vector
 from .constants import EPS
 from .affine_transformation import to_homogeneous_matrix
+
 import numpy as np
 
 
@@ -23,6 +24,13 @@ def rotate_to(vector):
         z = normalize_vector(np.cross(x, vector))
         res = np.vstack([x, vector, z])
         return to_homogeneous_matrix(res)
+
+
+def rotate_vector(mat, vec):
+    out_dir = to_homogeneous_vector(vec) @ mat
+    out_dir = out_dir[:3]
+    out_dir = normalize_vector(out_dir)
+    return out_dir
 
 
 def rotate_z_to(vector):

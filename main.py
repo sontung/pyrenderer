@@ -2,7 +2,7 @@ import sys
 import time
 
 from io_utils.read_tungsten import read_file
-from core.tracing import ray_casting
+from core.tracing import ray_casting, path_tracing
 from tqdm import tqdm
 from skimage.io import imsave
 import numpy as np
@@ -14,17 +14,27 @@ import open3d as o3d
 
 
 def trace_pixel(x, y, w, h, a_camera, a_scene):
-    x = (x+random.random())/float(w)
-    y = (y+random.random())/float(h)
-    ray = a_camera.generate_ray(np.array([x, y]))
-    return ray_casting(ray, a_scene)
+    total = np.zeros((3,), np.float64)
+    for _ in range(SAMPLES):
+        x = (x+random.random())/float(w)
+        y = (y+random.random())/float(h)
+        ray = a_camera.generate_ray(np.array([x, y]))
+        e, r = path_tracing(ray, a_scene)
+        color = e+r
+        total = color + total
+    return total/SAMPLES
 
 
 def trace_pixel_par(x, y, w, h, a_camera, a_scene):
-    u = (x+random.random())/float(w)
-    v = (y+random.random())/float(h)
-    ray = a_camera.generate_ray(np.array([u, v]))
-    return ray_casting(ray, a_scene), x, y
+    total = np.zeros((3,), np.float64)
+    for _ in range(SAMPLES):
+        u = (x+random.random())/float(w)
+        v = (y+random.random())/float(h)
+        ray = a_camera.generate_ray(np.array([u, v]))
+        e, r = path_tracing(ray, a_scene)
+        color = e+r
+        total = color + total
+    return total/SAMPLES, x, y
 
 
 def main():
@@ -39,7 +49,7 @@ def main():
                     pbar.update(1)
     else:
         works = [(i, j) for i in range(x_dim) for j in range(y_dim)]
-        results = Parallel(n_jobs=6)(delayed(trace_pixel_par)(i, j, x_dim, y_dim, a_camera, a_scene)
+        results = Parallel(n_jobs=4)(delayed(trace_pixel_par)(i, j, x_dim, y_dim, a_camera, a_scene)
                                      for i, j in tqdm(works, desc="rendering"))
         for val, i, j in results:
             image[x_dim-1-j, i] = val
@@ -112,11 +122,14 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--debug', type=bool, default=False, help='Debug mode')
     parser.add_argument('-p', '--profile', type=bool, default=False, help='Profile mode')
     parser.add_argument('-s', '--sequential', type=bool, default=False, help='Not to run in parallel')
+    parser.add_argument('--samples', type=int, default=8, help='number of spp')
 
     args = vars(parser.parse_args())
     DEBUG_MODE = args['debug']
     PROFILE_MODE = args['profile']
     SEQUENTIAL = args['sequential']
+    SAMPLES = args['samples']
+
     if DEBUG_MODE:
         main_debug()
     elif PROFILE_MODE:
