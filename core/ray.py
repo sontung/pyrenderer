@@ -15,3 +15,6 @@ class Ray:
 
     def reset_bounds(self):
         self.bounds = np.array([0.0, MAX_F])
+
+    def __str__(self):
+        return f"Ray: pos={self.position} dir={self.direction}"

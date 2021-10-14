@@ -10,6 +10,7 @@ class BSDFLambertian:
     def __init__(self, data):
         self.rho = np.array(data['albedo'])
         self.emitting_light = False
+        self.sided = False
 
     def scatter(self):
         res = Scatter(cosine_sampling(), self.evaluate())
@@ -26,6 +27,7 @@ class BSDFLight:
     def __init__(self, data):
         self.rho = data['albedo']
         self.emitting_light = True
+        self.sided = False
 
     def evaluate(self):
         return np.array([self.rho, self.rho, self.rho])

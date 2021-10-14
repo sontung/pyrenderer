@@ -1,6 +1,6 @@
 import sys
 import time
-
+from debug.ray_logger import RayLogger
 from io_utils.read_tungsten import read_file
 from core.tracing import ray_casting, path_tracing
 from tqdm import tqdm
@@ -65,32 +65,23 @@ def main_debug():
 
     x_dim, y_dim = a_camera.get_resolution()
     image = np.zeros((x_dim, y_dim, 3), dtype=np.float64)
-    lines = []
-    points = []
-    colors = []
-    for i in range(0, x_dim, 10):
-        for j in range(0, y_dim, 10):
-            x = (i + random.random()) / float(x_dim)
-            y = (j + random.random()) / float(y_dim)
-            ray = a_camera.generate_ray(np.array([x, y]))
-            ret = a_scene.hit_faster(ray)
-            if not ret["hit"]:
-                points.extend([ray.position, ray.position+5*ray.direction])
-                lines.append([len(points)-2, len(points)-1])
-                colors.append([1, 0, 0])
-            else:
-                # points.extend([ray.position, ray.position+ret["t"]*ray.direction])
-                # lines.append([len(points)-2, len(points)-1])
-                # colors.append([0, 1, 0])
 
-                points.extend([ret["position"], ret["position"]+0.1*ret["normal"]])
-                lines.append([len(points)-2, len(points)-1])
-                colors.append([1, 1, 0])
+    ray_logger = RayLogger()
+    for i in range(0, x_dim, 1):
+        for j in range(0, y_dim, 1):
+            if i != 303 or j != 33:
+                continue
+
+            for _ in range(64):
+                x = (i + random.random()) / float(x_dim)
+                y = (j + random.random()) / float(y_dim)
+                ray = a_camera.generate_ray(np.array([x, y]))
+                e, r = path_tracing(ray, a_scene, ray_logger)
 
     line_set = o3d.geometry.LineSet()
-    line_set.points = o3d.utility.Vector3dVector(points)
-    line_set.lines = o3d.utility.Vector2iVector(lines)
-    line_set.colors = o3d.utility.Vector3dVector(colors)
+    line_set.points = o3d.utility.Vector3dVector(ray_logger.points)
+    line_set.lines = o3d.utility.Vector2iVector(ray_logger.lines)
+    line_set.colors = o3d.utility.Vector3dVector(ray_logger.colors)
     a_scene.visualize_o3d(line_set)
     return image
 

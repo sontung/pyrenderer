@@ -1,5 +1,7 @@
 import numpy as np
 import trimesh
+import random
+from math import sqrt
 from .intersection import triangle_ray_intersection_grouping
 from .bbox import BBox
 from .vec3 import normalize_vector
@@ -65,6 +67,15 @@ class Quad:
         self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
         for i in range(self.faces.shape[0]):
             self.res_array[i*2] = -1.0
+
+    def sample_a_point(self):
+        face_id = random.randint(0, self.faces.shape[0]-1)
+        u = sqrt(random.uniform(0, 1))
+        v = random.uniform(0, 1)
+        a = u*(1-v)
+        b = u*v
+        v0, v1, v2 = self.faces[face_id]
+        return a*self.vertices[v0] + b*self.vertices[v1] + (1.0-a-b)*self.vertices[v2]
 
     def visualize(self):
         self.mesh.show()

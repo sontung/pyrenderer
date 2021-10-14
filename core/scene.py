@@ -1,3 +1,5 @@
+import random
+
 import trimesh
 import numpy as np
 import open3d as o3d
@@ -16,9 +18,19 @@ class Scene:
         self.bvh_compatible_prims = []
         self.bvh_not_compatible_prims = []
         self.aggregator = Aggregator()
+        self.lights = []
+
+    def sample_light(self):
+        if len(self.lights) > 0:
+            prim = random.choice(self.lights)
+            return prim.sample_a_point()
+        else:
+            print("[WARNING] no lights found")
 
     def add_primitive(self, prim):
         self.primitives.append(prim)
+        if prim.bsdf.emitting_light:
+            self.lights.append(prim)
         if self.vertices is None:
             self.vertices = prim.vertices
             self.faces = prim.faces
