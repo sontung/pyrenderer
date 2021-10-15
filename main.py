@@ -67,12 +67,11 @@ def main_debug():
     image = np.zeros((x_dim, y_dim, 3), dtype=np.float64)
 
     ray_logger = RayLogger()
-    for i in range(0, x_dim, 1):
-        for j in range(0, y_dim, 1):
-            if i != 303 or j != 33:
-                continue
-
-            for _ in range(64):
+    for i in range(0, x_dim, 10):
+        for j in range(0, y_dim, 10):
+            # if i != 404 or j != 951:
+            #     continue
+            for _ in range(6):
                 x = (i + random.random()) / float(x_dim)
                 y = (j + random.random()) / float(y_dim)
                 ray = a_camera.generate_ray(np.array([x, y]))
@@ -88,23 +87,21 @@ def main_debug():
 
 def main_profile():
 
+    import taichi as ti
+    ti.init(arch=ti.gpu)
+
     a_scene, a_camera = read_file("media/cornell-box/scene.json")
     x_dim, y_dim = a_camera.get_resolution()
     image = np.zeros((x_dim, y_dim, 3), dtype=np.float64)
-    with tqdm(total=x_dim * y_dim, desc="rendering") as pbar:
-        for i in range(x_dim):
-            for j in range(y_dim):
-                image[j, i] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
-                pbar.update(1)
+    start = time.time()
+    for i in range(0, x_dim, 50):
+        for j in range(0, y_dim, 50):
+            image[j, i] = trace_pixel(i, j, x_dim, y_dim, a_camera, a_scene)
     image *= 255
     image = image.astype(np.uint8)
     imsave("test.png", image)
+    print(time.time() - start)
 
-    start = time.time()
-    works = [(i, j) for i in range(x_dim) for j in range(y_dim)]
-    from joblib import Parallel, delayed
-    Parallel(n_jobs=6)(delayed(trace_pixel)(i, j, x_dim, y_dim, a_camera, a_scene) for i, j in works)
-    print(f"parallel took {time.time()-start}")
     return image
 
 

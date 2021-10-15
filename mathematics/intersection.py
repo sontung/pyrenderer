@@ -1,6 +1,8 @@
 from .constants import EPS, MAX_F
 from .fast_op import fast_dot3, cross_product, fast_subtract, numba_tile, compute_pos
+from .interection_ti import triangle_ray_intersection_grouping_numba as ti_tri_intersect
 import numpy as np
+import taichi as ti
 from numba import njit
 
 
@@ -82,7 +84,7 @@ def triangle_ray_intersection_grouping_numba(u1, u2, ray_bound, nb_triangles,
         triangle_ray_intersection_numba(i, ray_bound, a_array[i], e2r_array[i], sq_array[i], rdr_array[i], res_holder)
 
 
-# @profile
+@profile
 def triangle_ray_intersection_grouping(ray, nb_triangles, s_array, q_array, r_array, p0_array,
                                        e1_array, e2_array, a_array, e2r_array, sq_array, rdr_array, res_holder):
     try:
@@ -100,6 +102,41 @@ def triangle_ray_intersection_grouping(ray, nb_triangles, s_array, q_array, r_ar
                                              e1_array, e2_array, a_array, e2r_array,
                                              sq_array, rdr_array, res_holder
                                              )
+    u1_ti = ti.field(ti.f64, u1.shape)
+    u2_ti = ti.field(ti.f64, u2.shape)
+    ray_bounds = ti.field(ti.f64, ray.bounds.shape)
+    s_array_ti = ti.field(ti.f64, s_array.shape)
+    q_array_ti = ti.field(ti.f64, q_array.shape)
+    r_array_ti = ti.field(ti.f64, r_array.shape)
+    p0_array_ti = ti.field(ti.f64, p0_array.shape)
+    e1_array_ti = ti.field(ti.f64, e1_array.shape)
+    e2_array_ti = ti.field(ti.f64, e2_array.shape)
+    a_array_ti = ti.field(ti.f64, a_array.shape)
+    e2r_array_ti = ti.field(ti.f64, e2r_array.shape)
+    sq_array_ti = ti.field(ti.f64, sq_array.shape)
+    rdr_array_ti = ti.field(ti.f64, rdr_array.shape)
+    res_holder_ti = ti.field(ti.f64, res_holder.shape)
+
+    u1_ti.from_numpy(u1)
+    u2_ti.from_numpy(u2)
+    ray_bounds.from_numpy(ray.bounds)
+    s_array_ti.from_numpy(s_array)
+    q_array_ti.from_numpy(q_array)
+    r_array_ti.from_numpy(r_array)
+    p0_array_ti.from_numpy(p0_array)
+    e1_array_ti.from_numpy(e1_array)
+    e2_array_ti.from_numpy(e2_array)
+    a_array_ti.from_numpy(a_array)
+    e2r_array_ti.from_numpy(e2r_array)
+    sq_array_ti.from_numpy(sq_array)
+    rdr_array_ti.from_numpy(rdr_array)
+    res_holder_ti.from_numpy(res_holder)
+
+    ti_tri_intersect(u1_ti, u2_ti, ray_bounds,
+                     nb_triangles,
+                     s_array_ti, q_array_ti, r_array_ti, p0_array_ti,
+                     e1_array_ti, e2_array_ti, a_array_ti, e2r_array_ti,
+                     sq_array_ti, rdr_array_ti, res_holder_ti)
 
     results = []
     tmin = MAX_F

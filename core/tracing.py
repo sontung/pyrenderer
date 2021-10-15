@@ -54,15 +54,26 @@ def path_tracing(ray, scene, logged_rays=None):
     if not ret["hit"]:
         return null_val, null_val
 
-    if logged_rays is not None:
-        if ret["bsdf"].emitting_light:
-            logged_rays.add(ray, t=ret["t"], color=[0, 1, 0])
-        else:
-            logged_rays.add(ray, t=ret["t"], color=[1, 0, 0])
-            # logged_rays.add_line(ret["position"], ret["position"]+ret["normal"]*1, color=[0, 0, 1])
+    if not ret["bsdf"].sided and ray.direction@ret["normal"] > 0.0:
+        ret["normal"] = -ret["normal"]
+
+    # if logged_rays is not None:
+    #     if ret["bsdf"].emitting_light:
+    #         if ray.direction@ret["normal"] < 0.0:
+    #             logged_rays.add(ray, t=ret["t"], color=[0, 1, 0])
+    #             logged_rays.add_line(ret["position"], ret["position"] + ret["normal"] * 0.2, color=[0, 0, 1])
+    #         else:
+    #             logged_rays.add(ray, t=ret["t"], color=[1, 0, 0])
+    #             logged_rays.add_line(ret["position"], ret["position"] + ret["normal"] * 0.2, color=[0, 0, 1])
+    #     # elif ret["hit"]:
+    #     #     logged_rays.add(ray, t=ret["t"], color=[1, 0, 0])
+    #     #     logged_rays.add_line(ret["position"], ret["position"]+ret["normal"]*0.5, color=[0, 0, 1])
 
     if ret["bsdf"].emitting_light:
-        return ret["bsdf"].evaluate(), null_val
+        if ray.direction @ ret["normal"] < 0.0:
+            return ret["bsdf"].evaluate(), null_val
+        else:
+            return null_val, null_val
 
     if ray.depth == 0:
         return null_val, null_val
@@ -82,6 +93,6 @@ def path_tracing(ray, scene, logged_rays=None):
 
     light_sample = scene.sample_light()
     dir_towards_light = normalize_vector(light_sample-ret["position"])
-    dr = sample_direct_lighting(hit_info, scene, logged_rays, in_dir_world_space=dir_towards_light)
-    idr = sample_indirect_lighting(hit_info, scene, None)
+    dr = sample_direct_lighting(hit_info, scene, None, in_dir_world_space=dir_towards_light)
+    idr = sample_indirect_lighting(hit_info, scene, logged_rays)
     return null_val, dr+idr

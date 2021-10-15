@@ -17,7 +17,7 @@ class BSDFLambertian:
         return res
 
     def evaluate(self):
-        return self.rho * InvPi
+        return self.rho
 
     def pdf(self):
         return InvPi
@@ -27,10 +27,13 @@ class BSDFLight:
     def __init__(self, data):
         self.rho = data['albedo']
         self.emitting_light = True
-        self.sided = False
+        self.sided = True
 
     def evaluate(self):
         return np.array([self.rho, self.rho, self.rho])
+
+    def scatter(self):
+        raise NotImplementedError
 
 
 class BSDF:
