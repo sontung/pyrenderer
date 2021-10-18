@@ -1,14 +1,19 @@
 import numpy as np
 import trimesh
 import random
+import taichi as ti
 from math import sqrt
+from .constants import MAX_F
 from .intersection import triangle_ray_intersection_grouping
+from .intersection_taichi import ray_triangle_hit
 from .bbox import BBox
 from .vec3 import normalize_vector
 
 
+@ti.data_oriented
 class Quad:
     def __init__(self, trans_mat, bsdf):
+        self.id = -1
         default_vertices = np.array([
             [-0.5, 0, -0.5],
             [0.5, 0, -0.5],
@@ -31,42 +36,23 @@ class Quad:
         self.bsdf = bsdf
         self.bounds = BBox(None, None)
         self.bounds.from_vertices(self.vertices)
-        self.data = {}
-        self.triangles = []
-        self.first_vertices = []
-        self.e2 = []
-        self.e1 = []
-        self.normals = None
+        self.center = self.bounds.center()
 
         for i in range(self.faces.shape[0]):
             triangle = self.faces[i]
             e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
             e2 = self.vertices[triangle[2]]-self.vertices[triangle[0]]
             self.normal_vectors[i] = -normalize_vector(np.cross(e1, e2))
-            if i not in self.data:
-                self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
-                                self.vertices[triangle[2]]-self.vertices[triangle[0]]]
-            self.triangles.append([self.vertices[triangle[0]],
-                                   self.vertices[triangle[1]],
-                                   self.vertices[triangle[2]],
-                                   self.data[i]])
-            self.first_vertices.append(self.vertices[triangle[0]])
-            self.e2.append(e2)
-            self.e1.append(e1)
 
-        self.s_array = np.zeros((self.faces.shape[0]*3,), np.float64)
-        self.q_array = np.zeros((self.faces.shape[0]*3,), np.float64)
-        self.r_array = np.zeros((self.faces.shape[0]*3,), np.float64)
-        self.first_vertices = np.hstack(self.first_vertices)
-        self.e2 = np.hstack(self.e2)
-        self.e1 = np.hstack(self.e1)
-        self.a_array = np.zeros((self.faces.shape[0],), np.float64)
-        self.e2r_array = np.zeros((self.faces.shape[0],), np.float64)
-        self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
-        self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
-        self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
-        for i in range(self.faces.shape[0]):
-            self.res_array[i*2] = -1.0
+        self.vertices_ti = ti.Vector.field(n=3, dtype=ti.f32, shape=(default_vertices.shape[0], 1))
+        self.faces_ti = ti.Vector.field(n=3, dtype=ti.uint32, shape=(default_faces.shape[0], 1))
+        self.normals_ti = ti.Vector.field(n=3, dtype=ti.f32, shape=(default_faces.shape[0], 1))
+        for a in range(default_vertices.shape[0]):
+            self.vertices_ti[a, 0] = self.vertices[a]
+        for a in range(default_faces.shape[0]):
+            self.faces_ti[a, 0] = self.faces[a]
+        for a in range(default_faces.shape[0]):
+            self.normals_ti[a, 0] = self.normal_vectors[a]
 
     def sample_a_point(self):
         face_id = random.randint(0, self.faces.shape[0]-1)
@@ -80,25 +66,36 @@ class Quad:
     def visualize(self):
         self.mesh.show()
 
-    def hit_faster(self, ray):
-        hit_results = triangle_ray_intersection_grouping(ray, len(self.triangles),
-                                                         self.s_array, self.q_array, self.r_array,
-                                                         self.first_vertices, self.e1, self.e2, self.a_array,
-                                                         self.e2r_array, self.sq_array, self.rdr_array, self.res_array)
-        if len(hit_results) > 0:
-            ret, tri_ind = min(hit_results, key=lambda du: du[0]["t"])
-            ret["bsdf"] = self.bsdf
-            ret["normal"] = self.normal_vectors[tri_ind]
-            return ret
-        else:
-            return {"hit": False}
+    @ti.func
+    def hit(self, ro, rd):
+        t_min = MAX_F
+        hit = 0
+        face_id = 0
+        for i in range(self.faces.shape[0]):
+            face = self.faces_ti[i, 0]
+            hit, t = ray_triangle_hit(self.vertices_ti[face[0], 0], self.vertices_ti[face[1], 0],
+                                      self.vertices_ti[face[2], 0], ro, rd)
+            if hit > 0 and t < t_min:
+                t_min = t
+                face_id = i
+        return hit, t_min, self.normals_ti[face_id, 0]
+        # if hit > 0:
+        #     ret, tri_ind = min(hit_results, key=lambda du: du[0]["t"])
+        #     ret["bsdf"] = self.bsdf
+        #     ret["normal"] = self.normal_vectors[tri_ind]
+        #     return ret
+        # else:
+        #     return {"hit": False}
 
-    def hit(self, ray):
-        return self.hit_faster(ray)
+    @property
+    def bounding_box(self):
+        return self.bounds.min_coord, self.bounds.max_coord
 
 
+@ti.data_oriented
 class Cube:
     def __init__(self, trans_mat, bsdf):
+        self.id = -1
         default_vertices = np.array([
             [-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, -0.5, -0.5],
             [-0.5, 0.5, 0.5], [-0.5, 0.5, -0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5],
@@ -149,55 +146,40 @@ class Cube:
         self.bsdf = bsdf
         self.bounds = BBox(None, None)
         self.bounds.from_vertices(self.vertices)
-        self.data = {}
-        self.triangles = []
-        self.e2 = []
-        self.e1 = []
-        self.first_vertices = []
+        self.center = self.bounds.center()
         for i in range(self.faces.shape[0]):
             triangle = self.faces[i]
             e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
             e2 = self.vertices[triangle[2]]-self.vertices[triangle[0]]
             self.normal_vectors[i] = normalize_vector(np.cross(e1, e2))
-            if i not in self.data:
-                self.data[i] = [self.vertices[triangle[1]]-self.vertices[triangle[0]],
-                                self.vertices[triangle[2]]-self.vertices[triangle[0]]]
-            self.triangles.append([self.vertices[triangle[0]],
-                                   self.vertices[triangle[1]],
-                                   self.vertices[triangle[2]],
-                                   self.data[i]])
-            self.first_vertices.append(self.vertices[triangle[0]])
-            self.e2.append(e2)
-            self.e1.append(e1)
-        self.s_array = np.zeros((self.faces.shape[0]*3,), np.float64)
-        self.q_array = np.zeros((self.faces.shape[0]*3,), np.float64)
-        self.r_array = np.zeros((self.faces.shape[0]*3,), np.float64)
-        self.e2 = np.hstack(self.e2)
-        self.e1 = np.hstack(self.e1)
-        self.first_vertices = np.hstack(self.first_vertices)
-        self.a_array = np.zeros((self.faces.shape[0],), np.float64)
-        self.e2r_array = np.zeros((self.faces.shape[0],), np.float64)
-        self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
-        self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
-        self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
-        for i in range(self.faces.shape[0]):
-            self.res_array[i*2] = -1.0
+
+        self.vertices_ti = ti.Vector.field(n=3, dtype=ti.f32, shape=(default_vertices.shape[0], 1))
+        self.faces_ti = ti.Vector.field(n=3, dtype=ti.uint32, shape=(default_faces.shape[0], 1))
+        self.normals_ti = ti.Vector.field(n=3, dtype=ti.f32, shape=(default_faces.shape[0], 1))
+        for a in range(default_vertices.shape[0]):
+            self.vertices_ti[a, 0] = self.vertices[a]
+        for a in range(default_faces.shape[0]):
+            self.faces_ti[a, 0] = self.faces[a]
+        for a in range(default_faces.shape[0]):
+            self.normals_ti[a, 0] = self.normal_vectors[a]
 
     def visualize(self):
         self.mesh.show()
 
-    def hit_faster(self, ray):
-        hit_results = triangle_ray_intersection_grouping(ray, len(self.triangles),
-                                                         self.s_array, self.q_array, self.r_array,
-                                                         self.first_vertices, self.e1, self.e2, self.a_array,
-                                                         self.e2r_array, self.sq_array, self.rdr_array, self.res_array)
-        if len(hit_results) > 0:
-            ret, tri_ind = min(hit_results, key=lambda du: du[0]["t"])
-            ret["bsdf"] = self.bsdf
-            ret["normal"] = self.normal_vectors[tri_ind]
-            return ret
-        else:
-            return {"hit": False}
+    @ti.func
+    def hit(self, ro, rd):
+        t_min = MAX_F
+        hit = 0
+        face_id = 0
+        for i in range(self.faces.shape[0]):
+            face = self.faces_ti[i, 0]
+            hit, t = ray_triangle_hit(self.vertices_ti[face[0], 0], self.vertices_ti[face[1], 0],
+                                      self.vertices_ti[face[2], 0], ro, rd)
+            if hit > 0 and t < t_min:
+                t_min = t
+                face_id = i
+        return hit, t_min, self.normals_ti[face_id, 0]
 
-    def hit(self, ray):
-        return self.hit_faster(ray)
+    @property
+    def bounding_box(self):
+        return self.bounds.min_coord, self.bounds.max_coord

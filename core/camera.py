@@ -2,6 +2,9 @@ from pyrr.matrix44 import create_look_at
 from random import random
 from .ray import Ray
 from mathematics.vec3 import normalize_vector, to_homogeneous_vector
+from .camera_taichi import Camera as CameraTaichi
+from mathematics.vec3_taichi import *
+
 from math import tan, radians
 import numpy as np
 import sys
@@ -20,6 +23,16 @@ class Camera:
         self.focal_dist = focal_dist
         self.fov = fov
         self.aspect_ratio = self.resolution[0]/self.resolution[1]*1.0
+
+    def convert_to_taichi_camera(self):
+        vfrom = Point(self.position[0], self.position[1], self.position[2])
+        at = Point(self.looking_at[0], self.looking_at[1], self.looking_at[2])
+        up = Point(self.up[0], self.up[1], self.up[2])
+        focus_dist = self.focal_dist
+        aperture = self.aperture
+        aspect_ratio = float(self.resolution[0])/self.resolution[1]
+        cam = CameraTaichi(vfrom, at, up, self.fov, aspect_ratio, aperture, focus_dist)
+        return cam
 
     def get_resolution(self):
         return self.resolution
