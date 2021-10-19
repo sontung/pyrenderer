@@ -1,4 +1,5 @@
 import sys
+from taichi_glsl.vector import normalize, dot
 
 import taichi as ti
 from mathematics.vec3_taichi import *
@@ -8,7 +9,7 @@ from mathematics.intersection_taichi import World, Sphere
 from core.camera_taichi import Camera
 from core.bsdf_taichi import *
 from io_utils.read_tungsten import read_file
-
+import numpy as np
 import math
 import random
 
@@ -37,9 +38,14 @@ if __name__ == '__main__':
     ti.root.dense(ti.ij,
                   (image_width, image_height)).place(pixels, sample_count,
                                                      needs_sample)
+    ray_o_stored = ti.Vector.field(n=3, dtype=ti.f32, shape=(image_width, image_height))
+    ray_d_stored = ti.Vector.field(n=3, dtype=ti.f32, shape=(image_width, image_height))
+    uv_stored = ti.Vector.field(n=2, dtype=ti.f32, shape=(image_width, image_height))
+    t_stored = ti.field(dtype=ti.f32, shape=(image_width, image_height))
+    hit_stored = ti.field(dtype=ti.i8, shape=(image_width, image_height))
 
     samples_per_pixel = 512
-    max_depth = 16
+    max_depth = 1
 
     # materials
     mat_ground = Lambert([0.5, 0.5, 0.5])
@@ -55,11 +61,6 @@ if __name__ == '__main__':
     world.commit()
 
     # camera
-    vfrom = Point(13.0, 2.0, 3.0)
-    at = Point(0.0, 0.0, 0.0)
-    up = Vector(0.0, 1.0, 0.0)
-    focus_dist = 10.0
-    aperture = 0.1
     cam = a_camera.convert_to_taichi_camera()
     start_attenuation = Vector(1.0, 1.0, 1.0)
     initial = True
@@ -99,24 +100,28 @@ if __name__ == '__main__':
                 needs_sample[x, y] = 0
                 u = (x + ti.random()) / (image_width - 1)
                 v = (y + ti.random()) / (image_height - 1)
-                ray_org, ray_dir = cam.get_ray(u, v)
+                ray_org, ray_dir = cam.gen_ray(u, v)
                 rays.set(x, y, ray_org, ray_dir, depth, pdf)
+
             else:
                 ray_org, ray_dir, depth, pdf = rays.get(x, y)
 
             # intersect
-            hit, p, n, front_facing, index = world.hit_all(ray_org, ray_dir)
+            hit, t, p, n, front_facing, index = world.hit_all(ray_org, ray_dir)
             depth -= 1
             rays.depth[x, y] = depth
-            if hit:
+            pixels[x, y] += abs(normalize(n))
+
+            if hit > 0:
                 reflected, out_origin, out_direction, attenuation = world.materials.scatter(
                     index, ray_dir, p, n, front_facing)
                 rays.set(x, y, out_origin, out_direction, depth,
                          pdf * attenuation)
                 ray_dir = out_direction
 
-            if not hit or depth == 0:
-                pixels[x, y] += pdf * get_background(ray_dir)
+            if hit < 0 or depth == 0:
+                # pixels[x, y] += abs(ray_dir)
+                # pixels[x, y] += pdf * get_background(ray_dir)
                 sample_count[x, y] += 1
                 needs_sample[x, y] = 1
 
@@ -125,16 +130,57 @@ if __name__ == '__main__':
 
         return num_completed
 
+    @ti.kernel
+    def debug():
+        for x, y in pixels:
+            # if x != 50 or y != 700:
+            #     continue
+
+            needs_sample[x, y] = 0
+            u = (x + ti.random()) / (image_width - 1)
+            v = (y + ti.random()) / (image_height - 1)
+            ray_org, ray_dir = cam.gen_ray(u, v)
+            hit, t, p, n, front_facing, index = world.hit_all(ray_org, ray_dir)
+
+            ray_o_stored[x, y] = ray_org
+            ray_d_stored[x, y] = ray_dir
+            uv_stored[x, y][0] = u
+            uv_stored[x, y][1] = v
+            t_stored[x, y] = t
+            hit_stored[x, y] = hit
+
     num_pixels = image_width * image_height
+    debugging = True
+    if not debugging:
+        t = time()
+        print('starting big wavefront')
+        wavefront_initial()
+        num_completed = 0
+        while num_completed < num_pixels:
+            num_completed += wavefront_big()
+            # print('completed', num_completed)
 
-    t = time()
-    print('starting big wavefront')
-    wavefront_initial()
-    num_completed = 0
-    while num_completed < num_pixels:
-        num_completed += wavefront_big()
-        # print('completed', num_completed)
-
-    finish()
-    print(time() - t)
-    ti.imwrite(pixels.to_numpy(), 'out.png')
+        finish()
+        print(time() - t)
+        ti.imwrite(pixels.to_numpy(), 'out.png')
+    else:
+        debug()
+        for x in range(0, image_width, 5):
+            for y in range(0, image_height, 5):
+                # if x != 50 or y != 700:
+                #     continue
+                u, v = uv_stored[x, y]
+                ray_org = ray_o_stored[x, y]
+                ray_dir = ray_d_stored[x, y]
+                ray = a_camera.generate_ray(np.array([u, v]))
+                trace = a_scene.hit(ray)
+                try:
+                    assert trace["hit"]-hit_stored[x, y] == 0
+                except AssertionError:
+                    print(u, v)
+                    sys.exit()
+                if trace["hit"]:
+                    diff = trace["t"]-t_stored[x, y]
+                    if abs(diff) > 0.01:
+                        print(x, y, trace["t"], t_stored[x, y])
+                        sys.exit()

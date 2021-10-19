@@ -19,6 +19,7 @@ class Scene:
         self.bvh_not_compatible_prims = []
         self.aggregator = Aggregator()
         self.lights = []
+        self.primitives2 = []
 
     def sample_light(self):
         if len(self.lights) > 0:
@@ -29,6 +30,8 @@ class Scene:
 
     def add_primitive(self, prim):
         self.primitives.append(prim)
+        prim = prim.normal_shape()
+        self.primitives2.append(prim)
         if prim.bsdf.emitting_light:
             self.lights.append(prim)
         if self.vertices is None:
@@ -60,7 +63,7 @@ class Scene:
     def hit(self, ray):
         ret = {"origin": ray.position, "hit": False, "t": MAX_F,
                "position": np.array([0.0, 0.0, 0.0])}
-        for prim in self.primitives:
+        for prim in self.primitives2:
             ret2 = prim.hit(ray)
             if ret2["hit"] and ret2["t"] < ret["t"]:
                 ret = ret2

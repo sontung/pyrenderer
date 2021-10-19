@@ -38,7 +38,28 @@ def hit_sphere(center, radius, ray_origin, ray_direction, t_min, t_max):
 
 
 @ti.func
-def ray_triangle_hit(v0, v1, v2, ro, rd):
+def ray_triangle_hit(p0, p1, p2, ro, rd):
+    e1 = p1 - p0
+    e2 = p2 - p0
+    q = rd.cross(e2)
+    a = e1.dot(q)
+    t = MAX_F
+    hit = 0
+    if abs(a) >= EPS:
+        f = 1.0/a
+        s = ro-p0
+        u = f*s.dot(q)
+        if 1.0 >= u >= 0.0:
+            r = s.cross(e1)
+            v = f*rd.dot(r)
+            if v >= 0.0 and u+v <= 1.0:
+                hit = 1
+                t = f * e2.dot(r)
+    return hit, t
+
+
+@ti.func
+def ray_triangle_hit2(v0, v1, v2, ro, rd):
     u = v1 - v0
     v = v2 - v0
     norm = u.cross(v)
@@ -117,13 +138,12 @@ class World:
     def hit_all(self, ray_origin, ray_direction):
         ''' Intersects a ray against all objects. '''
         hit_anything = False
-        t_min = 0.0001
-        closest_so_far = 9999999999.9
+        t_min = EPS
+        closest_so_far = 99999.9
         hit_index = 0
         p = Point(0.0, 0.0, 0.0)
         n = Vector(0.0, 0.0, 0.0)
         front_facing = True
-        i = 0
         curr = self.bvh.bvh_root
 
         # walk the bvh tree
@@ -131,19 +151,13 @@ class World:
             obj_id, left_id, right_id, next_id = self.bvh.get_full_id(curr)
 
             if obj_id != -1:
-                # this is a leaf node, check the sphere
-                # hit, t = hit_sphere(self.center[obj_id], self.radius[obj_id],
-                #                     ray_origin, ray_direction, t_min,
-                #                     closest_so_far)
-                hit = 0
-                t = -1
                 for i in ti.static(range(len(self.spheres))):
                     if i == obj_id:
-                        hit, t, n = self.spheres[0].hit(ray_origin, ray_direction)
-                if hit:
-                    hit_anything = True
-                    closest_so_far = t
-                    hit_index = obj_id
+                        hit, t, n = self.spheres[i].hit(ray_origin, ray_direction)
+                        if hit > 0 and t_min < t < closest_so_far:
+                            hit_anything = True
+                            closest_so_far = t
+                            hit_index = obj_id
                 curr = next_id
             else:
                 if self.bvh.hit_aabb(curr, ray_origin, ray_direction, t_min,
@@ -159,11 +173,12 @@ class World:
                     curr = next_id
 
         if hit_anything:
+
             p = ray.at(ray_origin, ray_direction, closest_so_far)
             front_facing = is_front_facing(ray_direction, n)
             n = n if front_facing else -n
 
-        return hit_anything, p, n, front_facing, hit_index
+        return hit_anything, closest_so_far, p, n, front_facing, hit_index
 
     @ti.func
     def scatter(self, ray_direction, p, n, front_facing, index):

@@ -31,7 +31,8 @@ class Camera:
         focus_dist = self.focal_dist
         aperture = self.aperture
         aspect_ratio = float(self.resolution[0])/self.resolution[1]
-        cam = CameraTaichi(vfrom, at, up, self.fov, aspect_ratio, aperture, focus_dist)
+        cam = CameraTaichi(vfrom, at, up, self.fov, aspect_ratio, aperture,
+                           focus_dist, self.iview.T)
         return cam
 
     def get_resolution(self):

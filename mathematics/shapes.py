@@ -8,6 +8,8 @@ from .intersection import triangle_ray_intersection_grouping
 from .intersection_taichi import ray_triangle_hit
 from .bbox import BBox
 from .vec3 import normalize_vector
+from .shapes2 import Quad as Quad2
+from .shapes2 import Cube as Cube2
 
 
 @ti.data_oriented
@@ -54,6 +56,9 @@ class Quad:
         for a in range(default_faces.shape[0]):
             self.normals_ti[a, 0] = self.normal_vectors[a]
 
+    def normal_shape(self):
+        return Quad2(self.trans_mat, self.bsdf)
+
     def sample_a_point(self):
         face_id = random.randint(0, self.faces.shape[0]-1)
         u = sqrt(random.uniform(0, 1))
@@ -69,7 +74,7 @@ class Quad:
     @ti.func
     def hit(self, ro, rd):
         t_min = MAX_F
-        hit = 0
+        hit_anything = 0
         face_id = 0
         for i in range(self.faces.shape[0]):
             face = self.faces_ti[i, 0]
@@ -78,14 +83,9 @@ class Quad:
             if hit > 0 and t < t_min:
                 t_min = t
                 face_id = i
-        return hit, t_min, self.normals_ti[face_id, 0]
-        # if hit > 0:
-        #     ret, tri_ind = min(hit_results, key=lambda du: du[0]["t"])
-        #     ret["bsdf"] = self.bsdf
-        #     ret["normal"] = self.normal_vectors[tri_ind]
-        #     return ret
-        # else:
-        #     return {"hit": False}
+                hit_anything = 1
+
+        return hit_anything, t_min, self.normals_ti[face_id, 0]
 
     @property
     def bounding_box(self):
@@ -163,13 +163,16 @@ class Cube:
         for a in range(default_faces.shape[0]):
             self.normals_ti[a, 0] = self.normal_vectors[a]
 
+    def normal_shape(self):
+        return Cube2(self.trans_mat, self.bsdf)
+
     def visualize(self):
         self.mesh.show()
 
     @ti.func
     def hit(self, ro, rd):
         t_min = MAX_F
-        hit = 0
+        hit_anything = 0
         face_id = 0
         for i in range(self.faces.shape[0]):
             face = self.faces_ti[i, 0]
@@ -178,7 +181,9 @@ class Cube:
             if hit > 0 and t < t_min:
                 t_min = t
                 face_id = i
-        return hit, t_min, self.normals_ti[face_id, 0]
+                hit_anything = 1
+
+        return hit_anything, t_min, self.normals_ti[face_id, 0]
 
     @property
     def bounding_box(self):
