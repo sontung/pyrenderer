@@ -4,12 +4,12 @@ import random
 import taichi as ti
 from math import sqrt
 from .constants import MAX_F
-from .intersection import triangle_ray_intersection_grouping
 from .intersection_taichi import ray_triangle_hit
 from .bbox import BBox
 from .vec3 import normalize_vector
 from .shapes2 import Quad as Quad2
 from .shapes2 import Cube as Cube2
+from taichi_glsl.randgen import randInt, rand
 
 
 @ti.data_oriented
@@ -59,14 +59,15 @@ class Quad:
     def normal_shape(self):
         return Quad2(self.trans_mat, self.bsdf)
 
+    @ti.func
     def sample_a_point(self):
-        face_id = random.randint(0, self.faces.shape[0]-1)
-        u = sqrt(random.uniform(0, 1))
-        v = random.uniform(0, 1)
+        face_id = randInt(0, self.faces.shape[0]-1)
+        u = ti.sqrt(rand())
+        v = rand()
         a = u*(1-v)
         b = u*v
-        v0, v1, v2 = self.faces[face_id]
-        return a*self.vertices[v0] + b*self.vertices[v1] + (1.0-a-b)*self.vertices[v2]
+        v0, v1, v2 = self.faces_ti[face_id, 0]
+        return a*self.vertices_ti[v0, 0] + b*self.vertices_ti[v1, 0] + (1.0-a-b)*self.vertices_ti[v2, 0]
 
     def visualize(self):
         self.mesh.show()
@@ -84,7 +85,10 @@ class Quad:
                 t_min = t
                 face_id = i
                 hit_anything = 1
-        return hit_anything, t_min, self.normals_ti[face_id, 0]
+
+        next_rd, attenuation = self.bsdf.scatter()
+        emit, sided = self.bsdf.emitting_light, self.bsdf.sided
+        return hit_anything, t_min, self.normals_ti[face_id, 0], next_rd, attenuation, emit, sided
 
     @property
     def bounding_box(self):
@@ -162,6 +166,16 @@ class Cube:
         for a in range(default_faces.shape[0]):
             self.normals_ti[a, 0] = self.normal_vectors[a]
 
+    @ti.func
+    def sample_a_point(self):
+        face_id = randInt(0, self.faces.shape[0]-1)
+        u = ti.sqrt(rand())
+        v = rand()
+        a = u*(1-v)
+        b = u*v
+        v0, v1, v2 = self.faces_ti[face_id, 0]
+        return a*self.vertices_ti[v0, 0] + b*self.vertices_ti[v1, 0] + (1.0-a-b)*self.vertices_ti[v2, 0]
+
     def normal_shape(self):
         return Cube2(self.trans_mat, self.bsdf)
 
@@ -181,7 +195,9 @@ class Cube:
                 t_min = t
                 face_id = i
                 hit_anything = 1
-        return hit_anything, t_min, self.normals_ti[face_id, 0]
+        next_rd, attenuation = self.bsdf.scatter()
+        emit, sided = self.bsdf.emitting_light, self.bsdf.sided
+        return hit_anything, t_min, self.normals_ti[face_id, 0], next_rd, attenuation, emit, sided
 
     @property
     def bounding_box(self):

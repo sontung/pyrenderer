@@ -6,7 +6,7 @@ import random
 import numpy as np
 from .constants import MAX_F, EPS
 from accelerators.bvh_taichi import BVH
-
+from taichi_glsl.randgen import randInt
 
 @ti.func
 def is_front_facing(ray_direction, normal):
@@ -58,38 +58,6 @@ def ray_triangle_hit(p0, p1, p2, ro, rd):
     return hit, t
 
 
-@ti.func
-def ray_triangle_hit2(v0, v1, v2, ro, rd):
-    u = v1 - v0
-    v = v2 - v0
-    norm = u.cross(v)
-    depth = MAX_F * 2
-    s, t = 0., 0.
-    hit = 0
-
-    b = norm.dot(rd)
-    if abs(b) >= EPS:
-        w0 = ro - v0
-        a = -norm.dot(w0)
-        r = a / b
-        if r > 0:
-            ip = ro + r * rd
-            uu = u.dot(u)
-            uv = u.dot(v)
-            vv = v.dot(v)
-            w = ip - v0
-            wu = w.dot(u)
-            wv = w.dot(v)
-            D = uv * uv - uu * vv
-            s = (uv * wv - vv * wu) / D
-            t = (uv * wu - uu * wv) / D
-            if 0 <= s <= 1:
-                if 0 <= t and s + t <= 1:
-                    depth = r
-                    hit = 1
-    return hit, depth
-
-
 class Sphere:
     def __init__(self, center, radius, material):
         self.center = center
@@ -118,10 +86,25 @@ LEAF = 0.0
 class World:
     def __init__(self):
         self.spheres = []
+        self.lights = []
 
-    def add(self, sphere):
-        sphere.id = len(self.spheres)
-        self.spheres.append(sphere)
+    @ti.func
+    def sample_a_light(self):
+        point = Vector(0.0, 0.0, 0.0)
+        if len(self.lights) > 1:
+            light_id = randInt(0, len(self.lights)-1)
+            for i in ti.static(range(len(self.lights))):
+                if i == light_id:
+                    point = self.lights[i].sample_a_point()
+        else:
+            point = self.lights[0].sample_a_point()
+        return point
+
+    def add(self, prim):
+        prim.id = len(self.spheres)
+        self.spheres.append(prim)
+        if prim.bsdf.emitting_light:
+            self.lights.append(prim)
 
     def commit(self):
         ''' Commit should be called after all objects added.
@@ -130,6 +113,7 @@ class World:
         self.materials = Materials(self.n)
         self.bvh = BVH(self.spheres)
         self.bvh.build()
+        assert len(self.lights) > 0, "There is no lights!!!"
 
     def bounding_box(self, i):
         return self.bvh_min(i), self.bvh_max(i)
@@ -143,7 +127,11 @@ class World:
         hit_index = 0
         p = Point(0.0, 0.0, 0.0)
         normal = Vector(0.0, 0.0, 0.0)
+        emissive = 0
+        attenuation = Vector(0.0, 0.0, 0.0)
+        scattered_dir = Vector(0.0, 0.0, 0.0)
         front_facing = True
+        sided = 1
         curr = self.bvh.bvh_root
 
         # walk the bvh tree
@@ -153,12 +141,16 @@ class World:
             if obj_id != -1:
                 for i in ti.static(range(len(self.spheres))):
                     if i == obj_id:
-                        hit, t, n = self.spheres[i].hit(ray_origin, ray_direction)
+                        hit, t, n, next_ray_d, att, emit, bsdf_sided = self.spheres[i].hit(ray_origin, ray_direction)
                         if hit > 0 and t_min < t < closest_so_far:
                             hit_anything = True
                             closest_so_far = t
                             hit_index = obj_id
                             normal = n
+                            emissive = emit
+                            attenuation = att
+                            scattered_dir = next_ray_d
+                            sided = bsdf_sided
                 curr = next_id
             else:
                 if self.bvh.hit_aabb(curr, ray_origin, ray_direction, t_min,
@@ -173,11 +165,11 @@ class World:
                 else:
                     curr = next_id
 
-        if hit_anything:
+        if hit_anything and not sided:
             p = ray.at(ray_origin, ray_direction, closest_so_far)
             front_facing = is_front_facing(ray_direction, normal)
             normal = normal if front_facing else -normal
-        return hit_anything, closest_so_far, p, normal, front_facing, hit_index
+        return hit_anything, closest_so_far, p, normal, front_facing, hit_index, emissive, attenuation, scattered_dir
 
     @ti.func
     def scatter(self, ray_direction, p, n, front_facing, index):

@@ -1,5 +1,8 @@
 import numpy as np
-from mathematics.mat4 import rotate_to, rotate_vector
+import taichi as ti
+from taichi_glsl.vector import normalize
+from mathematics.vec3_taichi import Vector
+from mathematics.mat4_taichi import rotate_to, rotate_vector, transpose
 from mathematics.vec3 import normalize_vector
 from core.ray import Ray
 import sys
@@ -22,77 +25,50 @@ def ray_casting(ray, scene, normal_vis=True):
         return ret["bsdf"].rho
 
 
-def sample_direct_lighting(hit_info, scene, logged_rays, in_dir_world_space=None):
-    radiance = np.zeros((3,), np.float64)
-    scatter = hit_info["bsdf"].scatter()
-    if in_dir_world_space is None:
+class PathTracer:
+    def __init__(self, world):
+        self.world = world
+
+    @ti.func
+    def sample_direct_lighting(self, hit_pos, in_dir_world_space, scale, depth):
+        radiance = Vector(0.0, 0.0, 0.0)
+        res = self.trace(hit_pos, in_dir_world_space, depth)
+        emissive = res[0]
+        radiance += scale * emissive
+        return radiance
+
+    def sample_indirect_lighting(self, hit_info, scene, logged_rays):
+        radiance = np.zeros((3,), np.float64)
+        scatter = hit_info["bsdf"].scatter()
         in_dir = scatter.direction
         in_dir_world_space = rotate_vector(hit_info["object_to_world"], in_dir)
-    new_ray = Ray(hit_info["position"], in_dir_world_space, 0)
-    res = path_tracing(new_ray, scene, logged_rays)
-    emissive = res[0]
-    radiance += scatter.scale * emissive
-    return radiance
+        new_ray = Ray(hit_info["position"], in_dir_world_space, hit_info["depth"]-1)
+        res = path_tracing(new_ray, scene, logged_rays)
+        reflection = res[1]
+        radiance += scatter.scale * reflection
+        return radiance
 
+    @ti.func
+    def trace(self, ro, rd, depth):
+        hit, t, hit_pos, normal, front_facing, index, emitting_light, attenuation, scattered_dir = self.world.hit_all(ro, rd)
 
-def sample_indirect_lighting(hit_info, scene, logged_rays):
-    radiance = np.zeros((3,), np.float64)
-    scatter = hit_info["bsdf"].scatter()
-    in_dir = scatter.direction
-    in_dir_world_space = rotate_vector(hit_info["object_to_world"], in_dir)
-    new_ray = Ray(hit_info["position"], in_dir_world_space, hit_info["depth"]-1)
-    res = path_tracing(new_ray, scene, logged_rays)
-    reflection = res[1]
-    radiance += scatter.scale * reflection
-    return radiance
+        radiance_e = Vector(0.0, 0.0, 0.0)
+        radiance_r = Vector(0.0, 0.0, 0.0)
 
+        if hit > 0:
+            if emitting_light > 0:
+                if rd.dot(normal) < 0.0:
+                    radiance_e += attenuation
 
-def path_tracing(ray, scene, logged_rays=None):
-    ret = scene.hit_faster(ray)
-    null_val = np.array([0.0, 0.0, 0.0])
+            elif depth > 0:
+                # object_to_world = rotate_to(normal)
+                # world_to_object = transpose(object_to_world)
+                # out_dir = rotate_vector(world_to_object, ro - hit_pos)
+                # idr = sample_indirect_lighting(hit_info, scene)
 
-    if not ret["hit"]:
-        return null_val, null_val
+                light_sample = self.world.sample_a_light()
+                dir_towards_light = normalize(light_sample - hit_pos)
+                radiance_r += self.sample_direct_lighting(hit_pos, dir_towards_light, attenuation, 0)
 
-    if not ret["bsdf"].sided and ray.direction@ret["normal"] > 0.0:
-        ret["normal"] = -ret["normal"]
+        return radiance_e, radiance_r
 
-    # if logged_rays is not None:
-    #     if ret["bsdf"].emitting_light:
-    #         if ray.direction@ret["normal"] < 0.0:
-    #             logged_rays.add(ray, t=ret["t"], color=[0, 1, 0])
-    #             logged_rays.add_line(ret["position"], ret["position"] + ret["normal"] * 0.2, color=[0, 0, 1])
-    #         else:
-    #             logged_rays.add(ray, t=ret["t"], color=[1, 0, 0])
-    #             logged_rays.add_line(ret["position"], ret["position"] + ret["normal"] * 0.2, color=[0, 0, 1])
-    #     # elif ret["hit"]:
-    #     #     logged_rays.add(ray, t=ret["t"], color=[1, 0, 0])
-    #     #     logged_rays.add_line(ret["position"], ret["position"]+ret["normal"]*0.5, color=[0, 0, 1])
-
-    if ret["bsdf"].emitting_light:
-        if ray.direction @ ret["normal"] < 0.0:
-            return ret["bsdf"].evaluate(), null_val
-        else:
-            return null_val, null_val
-
-    if ray.depth == 0:
-        return null_val, null_val
-
-    object_to_world = rotate_to(ret["normal"])
-    world_to_object = object_to_world.T
-    out_dir = rotate_vector(world_to_object, ray.position - ret["position"])
-    hit_info = {
-        "object_to_world": object_to_world,
-        "world_to_object": world_to_object,
-        "out_dir": out_dir,
-        "position": ret["position"],
-        "normal": ret["normal"],
-        "depth": ray.depth,
-        "bsdf": ret["bsdf"]
-    }
-
-    light_sample = scene.sample_light()
-    dir_towards_light = normalize_vector(light_sample-ret["position"])
-    dr = sample_direct_lighting(hit_info, scene, None, in_dir_world_space=dir_towards_light)
-    idr = sample_indirect_lighting(hit_info, scene, logged_rays)
-    return null_val, dr+idr
