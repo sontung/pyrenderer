@@ -39,13 +39,15 @@ if __name__ == '__main__':
                   (image_width, image_height)).place(pixels, sample_count,
                                                      needs_sample)
     ray_o_stored = ti.Vector.field(n=3, dtype=ti.f32, shape=(image_width, image_height))
+    normal_stored = ti.Vector.field(n=3, dtype=ti.f32, shape=(image_width, image_height))
+
     ray_d_stored = ti.Vector.field(n=3, dtype=ti.f32, shape=(image_width, image_height))
     uv_stored = ti.Vector.field(n=2, dtype=ti.f32, shape=(image_width, image_height))
     t_stored = ti.field(dtype=ti.f32, shape=(image_width, image_height))
     hit_stored = ti.field(dtype=ti.i8, shape=(image_width, image_height))
 
     samples_per_pixel = 512
-    max_depth = 1
+    max_depth = 16
 
     # materials
     mat_ground = Lambert([0.5, 0.5, 0.5])
@@ -110,7 +112,6 @@ if __name__ == '__main__':
             hit, t, p, n, front_facing, index = world.hit_all(ray_org, ray_dir)
             depth -= 1
             rays.depth[x, y] = depth
-            pixels[x, y] += abs(normalize(n))
 
             if hit > 0:
                 reflected, out_origin, out_direction, attenuation = world.materials.scatter(
@@ -120,8 +121,7 @@ if __name__ == '__main__':
                 ray_dir = out_direction
 
             if hit < 0 or depth == 0:
-                # pixels[x, y] += abs(ray_dir)
-                # pixels[x, y] += pdf * get_background(ray_dir)
+                pixels[x, y] += pdf * get_background(ray_dir)
                 sample_count[x, y] += 1
                 needs_sample[x, y] = 1
 
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     @ti.kernel
     def debug():
         for x, y in pixels:
-            # if x != 50 or y != 700:
+            # if x != 0 or y != 0:
             #     continue
 
             needs_sample[x, y] = 0
@@ -148,9 +148,10 @@ if __name__ == '__main__':
             uv_stored[x, y][1] = v
             t_stored[x, y] = t
             hit_stored[x, y] = hit
+            normal_stored[x, y] = n
 
     num_pixels = image_width * image_height
-    debugging = True
+    debugging = False
     if not debugging:
         t = time()
         print('starting big wavefront')
@@ -165,15 +166,24 @@ if __name__ == '__main__':
         ti.imwrite(pixels.to_numpy(), 'out.png')
     else:
         debug()
-        for x in range(0, image_width, 5):
-            for y in range(0, image_height, 5):
+        for x in range(0, image_width, 100):
+            for y in range(0, image_height, 100):
                 # if x != 50 or y != 700:
                 #     continue
                 u, v = uv_stored[x, y]
                 ray_org = ray_o_stored[x, y]
                 ray_dir = ray_d_stored[x, y]
+                n = normal_stored[x, y]
                 ray = a_camera.generate_ray(np.array([u, v]))
                 trace = a_scene.hit(ray)
+
+                normal_ref = trace["normal"]
+                diff = np.sum(np.abs(n.to_numpy()-normal_ref))
+                if diff > 0.01:
+                    print(n, normal_ref)
+                    print(x, y, diff)
+                    sys.exit()
+
                 try:
                     assert trace["hit"]-hit_stored[x, y] == 0
                 except AssertionError:

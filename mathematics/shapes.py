@@ -84,7 +84,6 @@ class Quad:
                 t_min = t
                 face_id = i
                 hit_anything = 1
-
         return hit_anything, t_min, self.normals_ti[face_id, 0]
 
     @property
@@ -182,7 +181,6 @@ class Cube:
                 t_min = t
                 face_id = i
                 hit_anything = 1
-
         return hit_anything, t_min, self.normals_ti[face_id, 0]
 
     @property

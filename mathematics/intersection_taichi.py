@@ -142,7 +142,7 @@ class World:
         closest_so_far = 99999.9
         hit_index = 0
         p = Point(0.0, 0.0, 0.0)
-        n = Vector(0.0, 0.0, 0.0)
+        normal = Vector(0.0, 0.0, 0.0)
         front_facing = True
         curr = self.bvh.bvh_root
 
@@ -158,6 +158,7 @@ class World:
                             hit_anything = True
                             closest_so_far = t
                             hit_index = obj_id
+                            normal = n
                 curr = next_id
             else:
                 if self.bvh.hit_aabb(curr, ray_origin, ray_direction, t_min,
@@ -173,12 +174,10 @@ class World:
                     curr = next_id
 
         if hit_anything:
-
             p = ray.at(ray_origin, ray_direction, closest_so_far)
-            front_facing = is_front_facing(ray_direction, n)
-            n = n if front_facing else -n
-
-        return hit_anything, closest_so_far, p, n, front_facing, hit_index
+            front_facing = is_front_facing(ray_direction, normal)
+            normal = normal if front_facing else -normal
+        return hit_anything, closest_so_far, p, normal, front_facing, hit_index
 
     @ti.func
     def scatter(self, ray_direction, p, n, front_facing, index):
