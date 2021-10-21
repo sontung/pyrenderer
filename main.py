@@ -14,7 +14,7 @@ import open3d as o3d
 
 
 def trace_pixel(x, y, w, h, a_camera, a_scene):
-    total = np.zeros((3,), np.float64)
+    total = np.zeros((3,), np.float32)
     for _ in range(SAMPLES):
         x = (x+random.random())/float(w)
         y = (y+random.random())/float(h)
@@ -26,7 +26,7 @@ def trace_pixel(x, y, w, h, a_camera, a_scene):
 
 
 def trace_pixel_par(x, y, w, h, a_camera, a_scene):
-    total = np.zeros((3,), np.float64)
+    total = np.zeros((3,), np.float32)
     for _ in range(SAMPLES):
         u = (x+random.random())/float(w)
         v = (y+random.random())/float(h)
@@ -40,7 +40,7 @@ def trace_pixel_par(x, y, w, h, a_camera, a_scene):
 def main():
     a_scene, a_camera = read_file("media/cornell-box/scene.json")
     x_dim, y_dim = a_camera.get_resolution()
-    image = np.zeros((x_dim, y_dim, 3), dtype=np.float64)
+    image = np.zeros((x_dim, y_dim, 3), dtype=np.float32)
     if SEQUENTIAL:
         with tqdm(total=x_dim * y_dim, desc="rendering") as pbar:
             for i in range(x_dim):
@@ -64,7 +64,7 @@ def main_debug():
     a_scene, a_camera = read_file("media/cornell-box/scene.json")
 
     x_dim, y_dim = a_camera.get_resolution()
-    image = np.zeros((x_dim, y_dim, 3), dtype=np.float64)
+    image = np.zeros((x_dim, y_dim, 3), dtype=np.float32)
 
     ray_logger = RayLogger()
     for i in range(0, x_dim, 10):
@@ -92,7 +92,7 @@ def main_profile():
 
     a_scene, a_camera = read_file("media/cornell-box/scene.json")
     x_dim, y_dim = a_camera.get_resolution()
-    image = np.zeros((x_dim, y_dim, 3), dtype=np.float64)
+    image = np.zeros((x_dim, y_dim, 3), dtype=np.float32)
     start = time.time()
     for i in range(0, x_dim, 50):
         for j in range(0, y_dim, 50):

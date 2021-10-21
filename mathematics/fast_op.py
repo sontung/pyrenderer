@@ -1,6 +1,6 @@
 import numpy as np
 from .constants import EPS
-from numba import njit, guvectorize, float64, vectorize
+from numba import njit, guvectorize, float32, vectorize
 import numba
 numba.config.NUMBA_DEFAULT_NUM_THREADS = 3
 
@@ -63,7 +63,7 @@ def fast_dot3(x, ty, res):
         res[i//3] = x[i]*ty[i]+x[i+1]*ty[i+1]+x[i+2]*ty[i+2]
 
 
-@guvectorize([(float64[:], float64[:], float64[:])], '(n),(n)->(n)')
+@guvectorize([(float32[:], float32[:], float32[:])], '(n),(n)->(n)')
 def fast_dot3_vectorized(x, ty, res):
     shape = res.shape[0] // 3
     for i in range(shape):
@@ -92,7 +92,7 @@ def cross_product(x, y, res):
         res[idx+2] = x[idx]*y[idx+1] - x[idx+1]*y[idx]
 
 
-@guvectorize([(float64[:], float64[:], float64[:])], '(n),(n)->(n)', target="cpu")
+@guvectorize([(float32[:], float32[:], float32[:])], '(n),(n)->(n)', target="cpu")
 def cross_product_vectorized(x, y, res):
     shape = res.shape[0] // 3
     for i in range(shape):

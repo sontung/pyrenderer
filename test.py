@@ -119,11 +119,11 @@ x = ti.field(ti.i32, 36)
 u2 = [1,2,3]
 print(x[0], type(x[0]), u1[x[0]], u2[x[0]])
 
-# u1_ti = ti.Vector.field(3, ti.f64, (12, 1))
-# u2_ti = ti.Vector.field(3, ti.f64, (12, 1))
-# p0_array_ti = ti.Vector.field(3, ti.f64, (12, 1))
-# e1_array_ti = ti.Vector.field(3, ti.f64, (12, 1))
-# e2_array_ti = ti.Vector.field(3, ti.f64, (12, 1))
+# u1_ti = ti.Vector.field(3, ti.f32, (12, 1))
+# u2_ti = ti.Vector.field(3, ti.f32, (12, 1))
+# p0_array_ti = ti.Vector.field(3, ti.f32, (12, 1))
+# e1_array_ti = ti.Vector.field(3, ti.f32, (12, 1))
+# e2_array_ti = ti.Vector.field(3, ti.f32, (12, 1))
 #
 #
 # for a in range(12):

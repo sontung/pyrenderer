@@ -9,7 +9,7 @@ PiOver4 = 0.78539816339744830961
 Sqrt2   = 1.41421356237309504880
 finfo = np.finfo(np.float32)
 MAX_F = finfo.max
-EPS     = finfo.tiny  # anything smaller than this is considered zero
+EPS     = 0.0001  # anything smaller than this is considered zero
 
 # rounding errors: https://www.pbr-book.org/3ed-2018/Shapes/Managing_Rounding_Error
 MACHINE_EPS = finfo.eps * 0.5

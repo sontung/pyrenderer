@@ -26,7 +26,7 @@ class Quad:
             [0, 1, 2],
             [2, 3, 0]
         ], np.uint)
-        normal_vector = np.array([0, 1, 0], np.float64)
+        normal_vector = np.array([0, 1, 0], np.float32)
         self.trans_mat = trans_mat
         self.normal_vectors = np.tile(normal_vector, (default_faces.shape[0], 1))
         self.mesh = trimesh.Trimesh(vertices=default_vertices,
@@ -137,7 +137,7 @@ class Cube:
             [-1, 0, 0],
             [1, 0, 0],
             [1, 0, 0],
-        ], np.float64)
+        ], np.float32)
         self.trans_mat = trans_mat
 
         self.mesh = trimesh.Trimesh(vertices=default_vertices,

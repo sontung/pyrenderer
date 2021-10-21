@@ -47,7 +47,7 @@ if __name__ == '__main__':
     hit_stored = ti.field(dtype=ti.i8, shape=(image_width, image_height))
 
     samples_per_pixel = 512
-    max_depth = 16
+    max_depth = 1
 
     # materials
     mat_ground = Lambert([0.5, 0.5, 0.5])
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     cam = a_camera.convert_to_taichi_camera()
     start_attenuation = Vector(1.0, 1.0, 1.0)
     initial = True
-    path_tracer = PathTracer(world)
+    path_tracer = PathTracer(world, max_depth)
 
     @ti.kernel
     def finish():
@@ -102,8 +102,8 @@ if __name__ == '__main__':
             ray_org, ray_dir = cam.gen_ray(u, v)
             rays.set(x, y, ray_org, ray_dir, depth, pdf)
 
-            e, r = path_tracer.trace(ray_org, ray_dir, depth)
-            pixels[x, y] += e+r
+            color = path_tracer.trace(ray_org, ray_dir, depth)
+            pixels[x, y] += color
             sample_count[x, y] += 1
             needs_sample[x, y] = 1
 
@@ -115,14 +115,14 @@ if __name__ == '__main__':
     @ti.kernel
     def debug():
         for x, y in pixels:
-            if x != 100 or y != 100:
+            if x != 500 or y != 500:
                 continue
 
             needs_sample[x, y] = 0
             u = (x + ti.random()) / (image_width - 1)
             v = (y + ti.random()) / (image_height - 1)
             ray_org, ray_dir = cam.gen_ray(u, v)
-            e, r = path_tracer.trace(ray_org, ray_dir, max_depth)
+            color = path_tracer.trace(ray_org, ray_dir, max_depth)
 
 
     num_pixels = image_width * image_height
@@ -134,38 +134,37 @@ if __name__ == '__main__':
         num_completed = 0
         while num_completed < num_pixels:
             num_completed += wavefront_big()
-            # print('completed', num_completed)
 
         finish()
-        print(time() - t)
+        print("completed in", time() - t)
         ti.imwrite(pixels.to_numpy(), 'out.png')
     else:
         debug()
-        for x in range(0, image_width, 100):
-            for y in range(0, image_height, 100):
-                # if x != 50 or y != 700:
-                #     continue
-                u, v = uv_stored[x, y]
-                ray_org = ray_o_stored[x, y]
-                ray_dir = ray_d_stored[x, y]
-                n = normal_stored[x, y]
-                ray = a_camera.generate_ray(np.array([u, v]))
-                trace = a_scene.hit(ray)
-
-                normal_ref = trace["normal"]
-                diff = np.sum(np.abs(n.to_numpy()-normal_ref))
-                if diff > 0.01:
-                    print(n, normal_ref)
-                    print(x, y, diff)
-                    sys.exit()
-
-                try:
-                    assert trace["hit"]-hit_stored[x, y] == 0
-                except AssertionError:
-                    print(u, v)
-                    sys.exit()
-                if trace["hit"]:
-                    diff = trace["t"]-t_stored[x, y]
-                    if abs(diff) > 0.01:
-                        print(x, y, trace["t"], t_stored[x, y])
-                        sys.exit()
+        # for x in range(0, image_width, 100):
+        #     for y in range(0, image_height, 100):
+        #         # if x != 50 or y != 700:
+        #         #     continue
+        #         u, v = uv_stored[x, y]
+        #         ray_org = ray_o_stored[x, y]
+        #         ray_dir = ray_d_stored[x, y]
+        #         n = normal_stored[x, y]
+        #         ray = a_camera.generate_ray(np.array([u, v]))
+        #         trace = a_scene.hit(ray)
+        #
+        #         normal_ref = trace["normal"]
+        #         diff = np.sum(np.abs(n.to_numpy()-normal_ref))
+        #         if diff > 0.01:
+        #             print(n, normal_ref)
+        #             print(x, y, diff)
+        #             sys.exit()
+        #
+        #         try:
+        #             assert trace["hit"]-hit_stored[x, y] == 0
+        #         except AssertionError:
+        #             print(u, v)
+        #             sys.exit()
+        #         if trace["hit"]:
+        #             diff = trace["t"]-t_stored[x, y]
+        #             if abs(diff) > 0.01:
+        #                 print(x, y, trace["t"], t_stored[x, y])
+        #                 sys.exit()

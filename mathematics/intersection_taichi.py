@@ -8,6 +8,7 @@ from .constants import MAX_F, EPS
 from accelerators.bvh_taichi import BVH
 from taichi_glsl.randgen import randInt
 
+
 @ti.func
 def is_front_facing(ray_direction, normal):
     return ray_direction.dot(normal) < 0.0
@@ -38,24 +39,26 @@ def hit_sphere(center, radius, ray_origin, ray_direction, t_min, t_max):
 
 
 @ti.func
-def ray_triangle_hit(p0, p1, p2, ro, rd, t0, t1):
-    e1 = p1 - p0
-    e2 = p2 - p0
-    q = rd.cross(e2)
-    a = e1.dot(q)
+def ray_triangle_hit(v0, v1, v2, ro, rd, t0, t1):
     t = MAX_F
     hit = 0
-    if abs(a) >= EPS:
-        f = 1.0/a
-        s = ro-p0
-        u = f*s.dot(q)
-        if u >= EPS:
-            r = s.cross(e1)
-            t = f * e2.dot(r)
-            if t0 < t < t1:
-                v = f*rd.dot(r)
-                if v >= EPS and u+v <= 1.0:
+    e1 = v1-v0
+    e2 = v2-v0
+    cross_e1_d = e1.cross(rd)
+    det = cross_e1_d.dot(e2)
+    if abs(det) > 0.0:
+        f = 1.0/det
+        s = ro - v0
+        cross_s_e2 = s.cross(e2)
+        dot_s_e2_e1 = cross_s_e2.dot(e1)
+        t = -f*dot_s_e2_e1
+        if t0 < t < t1:
+            u = -f * cross_s_e2.dot(rd)
+            if 0.0 <= u <= 1.0:
+                v = f * cross_e1_d.dot(s)
+                if v >= 0.0 and 1.0-u-v >= 0.0:
                     hit = 1
+
     return hit, t
 
 
@@ -173,6 +176,35 @@ class World:
         return hit_anything, closest_so_far, p, normal, front_facing, hit_index, emissive, attenuation, scattered_dir
 
     @ti.func
-    def scatter(self, ray_direction, p, n, front_facing, index):
-        ''' Get the scattered direction for a ray hitting an object '''
-        return self.materials.scatter(index, ray_direction, p, n, front_facing)
+    def hit_slow(self, ray_origin, ray_direction):
+        ''' Intersects a ray against all objects. '''
+        hit_anything = False
+        t_min = EPS
+        closest_so_far = 99999.9
+        hit_index = 0
+        p = Point(0.0, 0.0, 0.0)
+        normal = Vector(0.0, 0.0, 0.0)
+        emissive = 0
+        attenuation = Vector(0.0, 0.0, 0.0)
+        scattered_dir = Vector(0.0, 0.0, 0.0)
+        front_facing = True
+        sided = 1
+
+        for i in ti.static(range(len(self.primitives))):
+            hit, t, n, next_ray_d, att, emit, bsdf_sided = self.primitives[i].hit(ray_origin, ray_direction,
+                                                                                  t_min, closest_so_far)
+            if hit > 0:
+                hit_anything = True
+                closest_so_far = t
+                hit_index = i
+                normal = n
+                emissive = emit
+                attenuation = att
+                scattered_dir = next_ray_d
+                sided = bsdf_sided
+
+        if hit_anything and not sided:
+            p = ray.at(ray_origin, ray_direction, closest_so_far)
+            front_facing = is_front_facing(ray_direction, normal)
+            normal = normal if front_facing else -normal
+        return hit_anything, closest_so_far, p, normal, front_facing, hit_index, emissive, attenuation, scattered_dir

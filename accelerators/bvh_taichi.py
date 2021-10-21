@@ -181,7 +181,7 @@ class BVH:
             if t_near > t_far:
                 t_near, t_far = t_far, t_near
 
-            # t_far *= 1 + 2 * GAMMA2_3
+            t_far *= 1 + 2 * GAMMA2_3
 
             if t_near > t0:
                 t0 = t_near

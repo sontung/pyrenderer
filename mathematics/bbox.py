@@ -35,7 +35,7 @@ class BBox:
             self.min_coord = min_coord
             self.max_coord = max_coord
         self.empty = False
-        self.res_holder = np.zeros((2,), np.float64)
+        self.res_holder = np.zeros((2,), np.float32)
 
     def from_vertices(self, vertices):
         self.min_coord = np.min(vertices, axis=0)

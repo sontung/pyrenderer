@@ -50,7 +50,7 @@ def main():
     nb_triangles = 5000
     u1 = numba_tile(pos, nb_triangles)
     u2 = numba_tile(dir, nb_triangles)
-    bounds = np.zeros((2,), np.float64)
+    bounds = np.zeros((2,), np.float32)
     s_array = np.random.rand(nb_triangles * 3,)
     q_array = np.random.rand(nb_triangles * 3,)
     r_array = np.random.rand(nb_triangles * 3,)
@@ -58,10 +58,10 @@ def main():
     e1_array = np.random.rand(nb_triangles * 3,)
     e2_array = np.random.rand(nb_triangles * 3,)
     a_array = np.random.rand(nb_triangles)
-    e2r_array = np.zeros((nb_triangles,), np.float64)
-    sq_array = np.zeros((nb_triangles,), np.float64)
-    rdr_array = np.zeros((nb_triangles,), np.float64)
-    res_holder = np.zeros((nb_triangles*2,), np.float64)
+    e2r_array = np.zeros((nb_triangles,), np.float32)
+    sq_array = np.zeros((nb_triangles,), np.float32)
+    rdr_array = np.zeros((nb_triangles,), np.float32)
+    res_holder = np.zeros((nb_triangles*2,), np.float32)
 
     fast_subtract(u1, p0_array, s_array)
     cross_product(u2, e2_array, q_array)
