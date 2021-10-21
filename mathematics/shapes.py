@@ -73,15 +73,16 @@ class Quad:
         self.mesh.show()
 
     @ti.func
-    def hit(self, ro, rd):
+    def hit(self, ro, rd, t0, t1):
         t_min = MAX_F
         hit_anything = 0
         face_id = 0
         for i in range(self.faces.shape[0]):
             face = self.faces_ti[i, 0]
             hit, t = ray_triangle_hit(self.vertices_ti[face[0], 0], self.vertices_ti[face[1], 0],
-                                      self.vertices_ti[face[2], 0], ro, rd)
+                                      self.vertices_ti[face[2], 0], ro, rd, t0, t1)
             if hit > 0 and t < t_min:
+                t1 = t
                 t_min = t
                 face_id = i
                 hit_anything = 1
@@ -183,18 +184,20 @@ class Cube:
         self.mesh.show()
 
     @ti.func
-    def hit(self, ro, rd):
+    def hit(self, ro, rd, t0, t1):
         t_min = MAX_F
         hit_anything = 0
         face_id = 0
         for i in range(self.faces.shape[0]):
             face = self.faces_ti[i, 0]
             hit, t = ray_triangle_hit(self.vertices_ti[face[0], 0], self.vertices_ti[face[1], 0],
-                                      self.vertices_ti[face[2], 0], ro, rd)
+                                      self.vertices_ti[face[2], 0], ro, rd, t0, t1)
             if hit > 0 and t < t_min:
+                t1 = t
                 t_min = t
                 face_id = i
                 hit_anything = 1
+
         next_rd, attenuation = self.bsdf.scatter()
         emit, sided = self.bsdf.emitting_light, self.bsdf.sided
         return hit_anything, t_min, self.normals_ti[face_id, 0], next_rd, attenuation, emit, sided

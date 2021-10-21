@@ -1,6 +1,7 @@
 import taichi as ti
 import copy
 import random
+from mathematics.constants import GAMMA2_3, EPS, MAX_F
 
 
 def surrounding_box(box1, box2):
@@ -160,7 +161,6 @@ class BVH:
 
         save_bvh(self.root)
         self.bvh_root = 0
-        dooo = 0
 
     @ti.func
     def get_id(self, bvh_id):
@@ -168,32 +168,30 @@ class BVH:
         return self.bvh_obj_id[bvh_id]
 
     @ti.func
-    def hit_aabb(self, bvh_id, ray_origin, ray_direction, t_min, t_max):
+    def hit_aabb(self, bvh_id, ray_origin, ray_direction, t0, t1):
         ''' Use the slab method to do aabb test'''
         intersect = 1
         min_aabb = self.bvh_min[bvh_id]
         max_aabb = self.bvh_max[bvh_id]
 
         for i in ti.static(range(3)):
-            if ray_direction[i] == 0:
-                if ray_origin[i] < min_aabb[i] or ray_origin[i] > max_aabb[i]:
-                    intersect = 0
-            else:
-                i1 = (min_aabb[i] - ray_origin[i]) / ray_direction[i]
-                i2 = (max_aabb[i] - ray_origin[i]) / ray_direction[i]
+            t_near = (min_aabb[i] - ray_origin[i]) / ray_direction[i]
+            t_far = (max_aabb[i] - ray_origin[i]) / ray_direction[i]
 
-                new_t_max = ti.max(i1, i2)
-                new_t_min = ti.min(i1, i2)
+            if t_near > t_far:
+                t_near, t_far = t_far, t_near
 
-                t_max = ti.min(new_t_max, t_max)
-                t_min = ti.max(new_t_min, t_min)
+            # t_far *= 1 + 2 * GAMMA2_3
 
-        if t_min > t_max:
-            intersect = 0
+            if t_near > t0:
+                t0 = t_near
+            if t_far < t1:
+                t1 = t_far
+            if t0 > t1:
+                intersect = 0
         return intersect
 
     @ti.func
     def get_full_id(self, i):
         ''' Gets the obj id, left_id, right_id, next_id for a bvh node '''
-        return self.bvh_obj_id[i], self.bvh_left_id[i], \
-               self.bvh_right_id[i], self.bvh_next_id[i]
+        return self.bvh_obj_id[i], self.bvh_left_id[i], self.bvh_right_id[i], self.bvh_next_id[i]

@@ -38,7 +38,7 @@ def hit_sphere(center, radius, ray_origin, ray_direction, t_min, t_max):
 
 
 @ti.func
-def ray_triangle_hit(p0, p1, p2, ro, rd):
+def ray_triangle_hit(p0, p1, p2, ro, rd, t0, t1):
     e1 = p1 - p0
     e2 = p2 - p0
     q = rd.cross(e2)
@@ -49,12 +49,13 @@ def ray_triangle_hit(p0, p1, p2, ro, rd):
         f = 1.0/a
         s = ro-p0
         u = f*s.dot(q)
-        if 1.0 >= u >= 0.0:
+        if u >= EPS:
             r = s.cross(e1)
-            v = f*rd.dot(r)
-            if v >= 0.0 and u+v <= 1.0:
-                hit = 1
-                t = f * e2.dot(r)
+            t = f * e2.dot(r)
+            if t0 < t < t1:
+                v = f*rd.dot(r)
+                if v >= EPS and u+v <= 1.0:
+                    hit = 1
     return hit, t
 
 
@@ -85,7 +86,7 @@ LEAF = 0.0
 @ti.data_oriented
 class World:
     def __init__(self):
-        self.spheres = []
+        self.primitives = []
         self.lights = []
 
     @ti.func
@@ -101,17 +102,17 @@ class World:
         return point
 
     def add(self, prim):
-        prim.id = len(self.spheres)
-        self.spheres.append(prim)
+        prim.id = len(self.primitives)
+        self.primitives.append(prim)
         if prim.bsdf.emitting_light:
             self.lights.append(prim)
 
     def commit(self):
         ''' Commit should be called after all objects added.
             Will compile bvh and materials. '''
-        self.n = len(self.spheres)
+        self.n = len(self.primitives)
         self.materials = Materials(self.n)
-        self.bvh = BVH(self.spheres)
+        self.bvh = BVH(self.primitives)
         self.bvh.build()
         assert len(self.lights) > 0, "There is no lights!!!"
 
@@ -139,10 +140,11 @@ class World:
             obj_id, left_id, right_id, next_id = self.bvh.get_full_id(curr)
 
             if obj_id != -1:
-                for i in ti.static(range(len(self.spheres))):
+                for i in ti.static(range(len(self.primitives))):
                     if i == obj_id:
-                        hit, t, n, next_ray_d, att, emit, bsdf_sided = self.spheres[i].hit(ray_origin, ray_direction)
-                        if hit > 0 and t_min < t < closest_so_far:
+                        hit, t, n, next_ray_d, att, emit, bsdf_sided = self.primitives[i].hit(ray_origin, ray_direction,
+                                                                                              t_min, closest_so_far)
+                        if hit > 0:
                             hit_anything = True
                             closest_so_far = t
                             hit_index = obj_id
@@ -153,8 +155,7 @@ class World:
                             sided = bsdf_sided
                 curr = next_id
             else:
-                if self.bvh.hit_aabb(curr, ray_origin, ray_direction, t_min,
-                                     closest_so_far):
+                if self.bvh.hit_aabb(curr, ray_origin, ray_direction, t_min, closest_so_far):
                     # add left and right children
                     if left_id != -1:
                         curr = left_id

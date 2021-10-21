@@ -15,7 +15,7 @@ import random
 
 
 # switch to cpu if needed
-ti.init(arch=ti.gpu)
+ti.init(arch=ti.gpu, debug=True)
 
 
 @ti.func
@@ -115,22 +115,15 @@ if __name__ == '__main__':
     @ti.kernel
     def debug():
         for x, y in pixels:
-            # if x != 0 or y != 0:
-            #     continue
+            if x != 100 or y != 100:
+                continue
 
             needs_sample[x, y] = 0
             u = (x + ti.random()) / (image_width - 1)
             v = (y + ti.random()) / (image_height - 1)
             ray_org, ray_dir = cam.gen_ray(u, v)
-            hit, t, p, n, front_facing, index = world.hit_all(ray_org, ray_dir)
+            e, r = path_tracer.trace(ray_org, ray_dir, max_depth)
 
-            ray_o_stored[x, y] = ray_org
-            ray_d_stored[x, y] = ray_dir
-            uv_stored[x, y][0] = u
-            uv_stored[x, y][1] = v
-            t_stored[x, y] = t
-            hit_stored[x, y] = hit
-            normal_stored[x, y] = n
 
     num_pixels = image_width * image_height
     debugging = False

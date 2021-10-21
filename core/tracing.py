@@ -3,7 +3,7 @@ import taichi as ti
 from taichi_glsl.vector import normalize
 from mathematics.vec3_taichi import Vector
 from mathematics.mat4_taichi import rotate_to, rotate_vector, transpose
-from mathematics.vec3 import normalize_vector
+from mathematics.constants import EPS
 from core.ray import Ray
 import sys
 
@@ -25,16 +25,23 @@ def ray_casting(ray, scene, normal_vis=True):
         return ret["bsdf"].rho
 
 
+@ti.func
+def offset_ray(ro, normal):
+    ro_new = ro+normal*EPS
+    return ro_new
+
+
 class PathTracer:
     def __init__(self, world):
         self.world = world
 
     @ti.func
-    def sample_direct_lighting(self, hit_pos, in_dir_world_space, scale, depth):
+    def sample_direct_lighting(self, hit_pos, in_dir_world_space, scale):
         radiance = Vector(0.0, 0.0, 0.0)
-        res = self.trace(hit_pos, in_dir_world_space, depth)
-        emissive = res[0]
-        radiance += scale * emissive
+        hit, t, hit_pos, normal, front_facing, index, emitting_light, emissive, scattered_dir = self.world.hit_all(
+            hit_pos, in_dir_world_space)
+        if hit > 0 and emitting_light > 0 and in_dir_world_space.dot(normal) < 0.0:
+            radiance += scale * emissive
         return radiance
 
     def sample_indirect_lighting(self, hit_info, scene, logged_rays):
@@ -50,25 +57,28 @@ class PathTracer:
 
     @ti.func
     def trace(self, ro, rd, depth):
-        hit, t, hit_pos, normal, front_facing, index, emitting_light, attenuation, scattered_dir = self.world.hit_all(ro, rd)
-
         radiance_e = Vector(0.0, 0.0, 0.0)
         radiance_r = Vector(0.0, 0.0, 0.0)
+        while depth > 0:
+            hit, t, hit_pos, normal, front_facing, index, emitting_light, attenuation, scattered_dir = self.world.hit_all(
+                ro, rd)
+            hit_pos = offset_ray(hit_pos, normal)
+            if hit > 0:
+                if emitting_light > 0:
+                    if rd.dot(normal) < 0.0:
+                        radiance_e += attenuation
 
-        if hit > 0:
-            if emitting_light > 0:
-                if rd.dot(normal) < 0.0:
-                    radiance_e += attenuation
+                elif depth > 0:
+                    # object_to_world = rotate_to(normal)
+                    # world_to_object = transpose(object_to_world)
+                    # out_dir = rotate_vector(world_to_object, ro - hit_pos)
+                    # idr = sample_indirect_lighting(hit_info, scene)
 
-            elif depth > 0:
-                # object_to_world = rotate_to(normal)
-                # world_to_object = transpose(object_to_world)
-                # out_dir = rotate_vector(world_to_object, ro - hit_pos)
-                # idr = sample_indirect_lighting(hit_info, scene)
-
-                light_sample = self.world.sample_a_light()
-                dir_towards_light = normalize(light_sample - hit_pos)
-                radiance_r += self.sample_direct_lighting(hit_pos, dir_towards_light, attenuation, 0)
-
+                    light_sample = self.world.sample_a_light()
+                    dir_towards_light = normalize(light_sample - hit_pos)
+                    radiance_r += self.sample_direct_lighting(hit_pos, dir_towards_light, attenuation)
+            depth = 0
+            ro = hit_pos
+            rd = scattered_dir
         return radiance_e, radiance_r
 
