@@ -21,7 +21,7 @@ class BSDFLambertian:
 
     @ti.func
     def evaluate(self):
-        return self.rho
+        return self.rho*InvPi
 
     @ti.func
     def pdf(self):
