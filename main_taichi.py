@@ -46,8 +46,8 @@ if __name__ == '__main__':
     t_stored = ti.field(dtype=ti.f32, shape=(image_width, image_height))
     hit_stored = ti.field(dtype=ti.i8, shape=(image_width, image_height))
 
-    samples_per_pixel = 512
-    max_depth = 1
+    samples_per_pixel = 32
+    max_depth = 8
 
     # materials
     mat_ground = Lambert([0.5, 0.5, 0.5])
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     cam = a_camera.convert_to_taichi_camera()
     start_attenuation = Vector(1.0, 1.0, 1.0)
     initial = True
-    path_tracer = PathTracer(world, max_depth)
+    path_tracer = PathTracer(world, max_depth, image_width, image_height)
 
     @ti.kernel
     def finish():
@@ -102,7 +102,7 @@ if __name__ == '__main__':
             ray_org, ray_dir = cam.gen_ray(u, v)
             rays.set(x, y, ray_org, ray_dir, depth, pdf)
 
-            color = path_tracer.trace(ray_org, ray_dir, depth)
+            color = path_tracer.trace(ray_org, ray_dir, depth, x, y)
             pixels[x, y] += color
             sample_count[x, y] += 1
             needs_sample[x, y] = 1
@@ -115,14 +115,14 @@ if __name__ == '__main__':
     @ti.kernel
     def debug():
         for x, y in pixels:
-            if x != 500 or y != 500:
+            if x != 915 or y != 9:
                 continue
 
             needs_sample[x, y] = 0
             u = (x + ti.random()) / (image_width - 1)
             v = (y + ti.random()) / (image_height - 1)
             ray_org, ray_dir = cam.gen_ray(u, v)
-            color = path_tracer.trace(ray_org, ray_dir, max_depth)
+            color = path_tracer.trace(ray_org, ray_dir, max_depth, x, y)
 
 
     num_pixels = image_width * image_height

@@ -169,10 +169,11 @@ class World:
                 else:
                     curr = next_id
 
-        if hit_anything and not sided:
+        if hit_anything:
             p = ray.at(ray_origin, ray_direction, closest_so_far)
-            front_facing = is_front_facing(ray_direction, normal)
-            normal = normal if front_facing else -normal
+            if not sided:
+                front_facing = is_front_facing(ray_direction, normal)
+                normal = normal if front_facing else -normal
         return hit_anything, closest_so_far, p, normal, front_facing, hit_index, emissive, attenuation, scattered_dir
 
     @ti.func
