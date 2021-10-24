@@ -35,9 +35,10 @@ class PathTracer:
     def __init__(self, world, depth, img_w, img_h):
         self.world = world
         self.depth = depth
+        self.r_field = ti.Vector.field(n=3, dtype=ti.f32, shape=(img_w, img_h, depth))
+        self.e_field = ti.field(dtype=ti.f32, shape=(img_w, img_h, depth))
         self.dr_field = ti.Vector.field(n=3, dtype=ti.f32, shape=(img_w, img_h, depth))
         self.att_field = ti.Vector.field(n=3, dtype=ti.f32, shape=(img_w, img_h, depth))
-        self.idr_field = ti.Vector.field(n=3, dtype=ti.f32, shape=(img_w, img_h, depth))
 
     @ti.func
     def reset(self):
@@ -57,17 +58,24 @@ class PathTracer:
 
     @ti.func
     def trace(self, ro, rd, depth, x, y):
-        radiance_e = Vector(0.0, 0.0, 0.0)
-        radiance_r = Vector(0.0, 0.0, 0.0)
         hit_anything = 0
+        max_bounce = 0
         for bounce in range(depth):
             hit, t, hit_pos, normal, front_facing, index, emitting_light, attenuation, scattered_dir = self.world.hit_all(
                 ro, rd)
-            # print(bounce, hit, ro, rd, t)
-            if hit > 0 and emitting_light > 0 and rd.dot(normal) < 0.0:
-                radiance_e += attenuation
-                # print("emit", radiance_e)
-            elif hit > 0:
+            max_bounce += 1
+            if hit > 0 and emitting_light > 0:
+                hit_anything = 1
+                if rd.dot(normal) < 0.0:
+                    self.r_field[x, y, bounce] = attenuation
+                    self.e_field[x, y, bounce] = 1.0
+                    break
+                object_to_world1, object_to_world2, object_to_world3, object_to_world4 = rotate_to(normal)
+                scattered_dir_world = normalize(
+                    rotate_vector(object_to_world1, object_to_world2, object_to_world3, scattered_dir))
+                ro = hit_pos
+                rd = scattered_dir_world
+            elif hit > 0 and bounce < depth-1:
                 hit_anything = 1
                 object_to_world1, object_to_world2, object_to_world3, object_to_world4 = rotate_to(normal)
                 scattered_dir_world = normalize(
@@ -76,8 +84,8 @@ class PathTracer:
                 # direct lighting
                 light_sample = self.world.sample_a_light()
                 dir_towards_light = normalize(light_sample - hit_pos)
-                # dr = self.sample_direct_lighting(hit_pos, scattered_dir_world, attenuation)
                 dr = self.sample_direct_lighting(hit_pos, dir_towards_light, attenuation)
+                # dr = self.sample_direct_lighting(hit_pos, scattered_dir_world, attenuation)
 
                 self.dr_field[x, y, bounce] = dr
                 self.att_field[x, y, bounce] = attenuation
@@ -86,17 +94,17 @@ class PathTracer:
                 ro = hit_pos
                 # ro = offset_ray(hit_pos, normal)
                 rd = scattered_dir_world
-                # print("reflect", dr, bounce)
 
             elif hit == 0:
                 break
 
         if hit_anything > 0:
-            radiance_r += self.dr_field[x, y, 0]
-            for bounce in range(1, depth):
-                bid = depth - bounce - 1
-                self.idr_field[x, y, bid] = self.att_field[x, y, bid] * (self.dr_field[x, y, bid+1] + self.idr_field[x, y, bid+1])
-            radiance_r += self.idr_field[x, y, 0]
-            # print("return", radiance_e, radiance_r)
-        return radiance_e + radiance_r
+            for bounce in range(1, max_bounce):
+                bid = max_bounce - bounce - 1
+                c1 = self.e_field[x, y, bid]*self.r_field[x, y, bid]
+                if self.e_field[x, y, bid] < 0.5:
+                    idr = self.att_field[x, y, bid]*self.r_field[x, y, bid+1]
+                    c1 = self.dr_field[x, y, bid]+idr
+                self.r_field[x, y, bid] = c1
+        return self.r_field[x, y, 0]
 
