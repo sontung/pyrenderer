@@ -111,7 +111,7 @@ if __name__ == '__main__':
     @ti.kernel
     def debug():
         for x, y in pixels:
-            if x != 918 or y != 10:
+            if x != 1024 - 104 or y != 110:
                 continue
             # x = 918
             # y = 10

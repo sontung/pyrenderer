@@ -225,7 +225,7 @@ class World:
         return self.bvh_min(i), self.bvh_max(i)
 
     @ti.func
-    def hit_all(self, ray_origin, ray_direction, last_idx):
+    def hit_all(self, ray_origin, ray_direction):
         ''' Intersects a ray against all objects. '''
         hit_anything = False
         t_min = 0.0001
@@ -247,8 +247,6 @@ class World:
             if obj_id != -1:
                 for i in ti.static(range(len(self.primitives))):
                     if i == obj_id:
-                        if 0 < last_idx == i:
-                            continue
                         hit, t, n, next_ray_d, att, emit, bsdf_sided = self.primitives[i].hit(ray_origin, ray_direction,
                                                                                               t_min, closest_so_far)
                         if hit > 0:
