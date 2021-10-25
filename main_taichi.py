@@ -16,6 +16,7 @@ import random
 
 # switch to cpu if needed
 ti.init(arch=ti.gpu, debug=True)
+# ti.init(arch=ti.cpu, cpu_max_num_threads=1, debug=True)
 
 
 @ti.func
@@ -85,7 +86,7 @@ if __name__ == '__main__':
             for each pixel:
                 generate ray if needed
                 intersect scene with ray
-                if miss or last bounce sample backgound
+                if miss or last bounce sample background
             return pixels that hit max samples
         '''
         num_completed = 0
@@ -110,15 +111,17 @@ if __name__ == '__main__':
     @ti.kernel
     def debug():
         for x, y in pixels:
-            if x != 735 or y != 1014:
+            if x != 918 or y != 10:
                 continue
-
+            # x = 918
+            # y = 10
             u = (x + ti.random()) / (image_width - 1)
             v = (y + ti.random()) / (image_height - 1)
             ray_org, ray_dir = cam.gen_ray(u, v)
+            print(x, y)
             color = path_tracer.trace(ray_org, ray_dir, max_depth, x, y)
             if color[0]+color[1]+color[2] < 0.01:
-                print(x, y)
+                print("black color", x, y)
 
 
     num_pixels = image_width * image_height

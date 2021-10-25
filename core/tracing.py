@@ -41,17 +41,10 @@ class PathTracer:
         self.att_field = ti.Vector.field(n=3, dtype=ti.f32, shape=(img_w, img_h, depth))
 
     @ti.func
-    def reset(self):
-        for i in range(self.depth):
-            self.dr_field[i, 0] = Vector(0.0, 0.0, 0.0)
-            self.att_field[i, 0] = Vector(0.0, 0.0, 0.0)
-            self.idr_field[i, 0] = Vector(0.0, 0.0, 0.0)
-
-    @ti.func
     def sample_direct_lighting(self, hit_pos, in_dir_world_space, scale):
         radiance = Vector(0.0, 0.0, 0.0)
         hit, t, hit_pos, normal, front_facing, index, emitting_light, emissive, scattered_dir = self.world.hit_all(
-            hit_pos, in_dir_world_space)
+            hit_pos, in_dir_world_space, -1)
         if hit > 0 and emitting_light > 0 and in_dir_world_space.dot(normal) < 0.0:
             radiance += scale * emissive
         return radiance
@@ -60,9 +53,15 @@ class PathTracer:
     def trace(self, ro, rd, depth, x, y):
         hit_anything = 0
         max_bounce = 0
+        last_ind = -1
         for bounce in range(depth):
             hit, t, hit_pos, normal, front_facing, index, emitting_light, attenuation, scattered_dir = self.world.hit_all(
-                ro, rd)
+                ro, rd, last_ind)
+            last_ind = index
+            # object_to_world1, object_to_world2, object_to_world3, object_to_world4 = rotate_to(normal)
+            # scattered_dir_world = normalize(
+            #     rotate_vector(object_to_world1, object_to_world2, object_to_world3, scattered_dir))
+            # print(bounce, hit, ro, rd, t, normal, hit_pos)
             max_bounce += 1
             if hit > 0 and emitting_light > 0:
                 hit_anything = 1
@@ -73,7 +72,9 @@ class PathTracer:
                 object_to_world1, object_to_world2, object_to_world3, object_to_world4 = rotate_to(normal)
                 scattered_dir_world = normalize(
                     rotate_vector(object_to_world1, object_to_world2, object_to_world3, scattered_dir))
-                ro = hit_pos
+
+                # ro = hit_pos
+                ro = offset_ray(hit_pos, normal)
                 rd = scattered_dir_world
             elif hit > 0 and bounce < depth-1:
                 hit_anything = 1
@@ -91,8 +92,8 @@ class PathTracer:
                 self.att_field[x, y, bounce] = attenuation
 
                 # indirect
-                ro = hit_pos
-                # ro = offset_ray(hit_pos, normal)
+                # ro = hit_pos
+                ro = offset_ray(hit_pos, normal)
                 rd = scattered_dir_world
 
             elif hit == 0:

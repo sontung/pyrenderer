@@ -4,7 +4,7 @@ import random
 import taichi as ti
 from math import sqrt
 from .constants import MAX_F
-from .intersection_taichi import ray_triangle_hit
+from .intersection_taichi import ray_triangle_hit, ray_triangle_hit2
 from .bbox import BBox
 from .vec3 import normalize_vector
 from .shapes2 import Quad as Quad2
@@ -81,6 +81,7 @@ class Quad:
             face = self.faces_ti[i, 0]
             hit, t = ray_triangle_hit(self.vertices_ti[face[0], 0], self.vertices_ti[face[1], 0],
                                       self.vertices_ti[face[2], 0], ro, rd, t0, t1)
+
             if hit > 0 and t < t_min:
                 t1 = t
                 t_min = t

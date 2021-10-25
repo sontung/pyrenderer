@@ -45,12 +45,10 @@ def rotate_to(vector):
 
 @ti.func
 def rotate_vector(res1, res2, res3, vec):
-    homo_vec = Vector4(vec[0], vec[1], vec[2], 1.0)
-    out_dir = Vector(dot(homo_vec, res1),
-                     dot(homo_vec, res2),
-                     dot(homo_vec, res3))
-    out_dir = normalize(out_dir)
-    return out_dir
+    out_dir = vec[0]*res1+vec[1]*res2+vec[2]*res3
+    homo_vec = Vector(out_dir[0], out_dir[1], out_dir[2])
+    homo_vec = normalize(homo_vec)
+    return homo_vec
 
 
 @ti.func
