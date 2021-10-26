@@ -2,10 +2,18 @@ from mathematics.constants import InvPi
 from mathematics.samplers import cosine_sampling
 from mathematics.vec3_taichi import Vector
 from collections import namedtuple
+from mathematics.samplers import cosine_sample_hemisphere
+from taichi_glsl.vector import vec2
+from taichi_glsl.randgen import rand
 import numpy as np
 import taichi as ti
 
 Scatter = namedtuple("Scatter", ["direction", "scale"])
+
+
+@ti.func
+def same_hemisphere(w, wp):
+    return w[1]*wp[1] > 0
 
 
 @ti.data_oriented
@@ -16,16 +24,24 @@ class BSDFLambertian:
         self.sided = 0
 
     @ti.func
-    def scatter(self):
-        return cosine_sampling(), self.evaluate()
+    def scatter(self, wo):
+        u = vec2(rand(), rand())
+        wi = cosine_sample_hemisphere(u)
+        if wi[1] < 0.0:
+            wi[1] *= -1
+        pdf = self.pdf(wo, wi)
+        return wi, self.evaluate(), pdf
 
     @ti.func
     def evaluate(self):
-        return self.rho*InvPi
+        return self.rho
 
     @ti.func
-    def pdf(self):
-        return InvPi
+    def pdf(self, wo, wi):
+        res = 0
+        if same_hemisphere(wo, wi):
+            res = ti.abs(wi[1]) * InvPi
+        return res
 
 
 @ti.data_oriented

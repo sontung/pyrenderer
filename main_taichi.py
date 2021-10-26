@@ -1,4 +1,5 @@
 import sys
+import cv2
 from taichi_glsl.vector import normalize, dot
 from core.tracing import PathTracer
 import taichi as ti
@@ -101,7 +102,7 @@ if __name__ == '__main__':
             v = (y + ti.random()) / (image_height - 1)
             ray_org, ray_dir = cam.gen_ray(u, v)
 
-            color = path_tracer.trace(ray_org, ray_dir, depth, x, y)
+            color = path_tracer.trace2(ray_org, ray_dir, depth, x, y)
             pixels[x, y] += color
             sample_count[x, y] += 1
 
@@ -111,15 +112,14 @@ if __name__ == '__main__':
     @ti.kernel
     def debug():
         for x, y in pixels:
-            if x != 1024 - 104 or y != 110:
+            if x != 16 or y != 962:
                 continue
             # x = 918
             # y = 10
             u = (x + ti.random()) / (image_width - 1)
             v = (y + ti.random()) / (image_height - 1)
             ray_org, ray_dir = cam.gen_ray(u, v)
-            print(x, y)
-            color = path_tracer.trace(ray_org, ray_dir, max_depth, x, y)
+            color = path_tracer.trace2(ray_org, ray_dir, max_depth, x, y)
             if color[0]+color[1]+color[2] < 0.01:
                 print("black color", x, y)
 
@@ -137,6 +137,10 @@ if __name__ == '__main__':
         finish()
         print("completed in", time() - t)
         ti.imwrite(pixels.to_numpy(), 'out.png')
+        im = cv2.imread("out.png")
+        cv2.imshow("t", im)
+        cv2.waitKey()
+        cv2.destroyAllWindows()
     else:
         debug()
         # for x in range(0, image_width, 100):

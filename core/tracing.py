@@ -1,6 +1,6 @@
 import numpy as np
 import taichi as ti
-from taichi_glsl.vector import normalize, invLength
+from taichi_glsl.vector import normalize, invLength, dot, sqrLength
 from mathematics.vec3_taichi import Vector
 from mathematics.mat4_taichi import rotate_to, rotate_vector, transpose
 from mathematics.constants import EPS
@@ -42,12 +42,25 @@ class PathTracer:
         self.cosine_field = ti.field(dtype=ti.f32, shape=(img_w, img_h, depth))
 
     @ti.func
-    def sample_direct_lighting(self, hit_pos, in_dir_world_space, scale):
+    def sample_direct_lighting(self, p, normal):
         radiance = Vector(0.0, 0.0, 0.0)
-        hit, t, hit_pos, normal, front_facing, index, emitting_light, emissive, scattered_dir = self.world.hit_all(
-            hit_pos, in_dir_world_space)
-        if hit > 0 and emitting_light > 0 and in_dir_world_space.dot(normal) < 0.0:
-            radiance += scale * emissive
+        p2, n2, emissive = self.world.sample_a_light()
+
+        w = normalize(p2 - p)
+        w2 = normalize(p - p2)
+        t_at_light = (p2[0] - p[0])/w[0]
+
+        hit, t, hit_pos, normal2, front_facing, index, emitting_light, _, scattered_dir = self.world.hit_all(
+            p, w, 0.0001, t_at_light)
+        if hit == 0:
+            radiance += emissive * dot(normal, w) * dot(n2, w2) / sqrLength(p - p2)
+            # print(emissive, dot(normal, w), dot(n2, w2))
+            # print(normal, n2)
+            # print(w, w2)
+            # print(p, p2)
+            # print(t, t_at_light)
+        # else:
+        #     print(t, t_at_light, p, w)
         return radiance
 
     @ti.func
@@ -55,6 +68,29 @@ class PathTracer:
         hit, t, hit_pos, normal, front_facing, index, emitting_light, attenuation, scattered_dir = self.world.hit_all(
             ro, rd)
         return ti.abs(normal)
+
+    @ti.func
+    def trace2(self, ro, rd, depth, x, y):
+        L = Vector(0.0, 0.0, 0.0)
+        beta = Vector(1.0, 1.0, 1.0)
+        for bounce in range(depth):
+            hit, t, hit_pos, normal, emitting_light, attenuation, wi, pdf = self.world.hit_all(
+                ro, rd, 0.00001, 99999.9)
+            if bounce == 0 and hit > 0 and emitting_light > 0:
+                inv_rd = -rd
+                L += beta*inv_rd.dot(normal)
+                break
+
+            if hit == 0 or bounce >= depth:
+                break
+
+            # direct lighting
+            Ld = beta * self.sample_direct_lighting(hit_pos, normal)
+            L += Ld
+
+            # indirect lighting
+            beta *= attenuation*ti.abs(wi.dot(normal))/pdf
+        return L
 
     @ti.func
     def trace(self, ro, rd, depth, x, y):

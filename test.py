@@ -26,14 +26,17 @@ m1 = rotate_to(np.array([-1.000000, -0.000000, -0.000000]))
 s3 = rotate_vector(m1, np.array(s1))
 print(s3)
 
-for i in range(len(data)):
-    ro, rd, t, nd, no = data[i]
-    ray_logger.add_line(np.array(ro), np.array(rd)*t+np.array(ro))
-    ray_logger.add_line(np.array(no), np.array(nd)*0.5+np.array(no), color=[0, 1, 0])
-    so2 = np.array(rd)*t+np.array(ro)
-    ray_logger.add_line(so2, np.array(s1)*t+so2, color=[0, 1, 1])
-    ray_logger.add_line(so2, np.array(s2)*t+so2)
-    ray_logger.add_line(so2, np.array(s3)*t+so2, color=[0.5, 0.5, 0.5])
+t0, t1, ro, rd = 1.353912, 1.353912, [1.000000, 1.170249, -0.548879], [-0.636713, 0.598082, 0.486718]
+ro = np.array(ro)
+rd = np.array(rd)
+
+ray_logger.add_line(ro, ro+rd*t0)
+ray_logger.add_line(ro, ro+rd*t1, color=[0, 1, 0])
+
+# for i in range(len(data)):
+#     ro, rd, t, nd, no = data[i]
+#     ray_logger.add_line(np.array(ro), np.array(rd)*t+np.array(ro))
+#     ray_logger.add_line(np.array(no), np.array(nd)*0.5+np.array(no), color=[0, 1, 0])
 
 
 line_set = o3d.geometry.LineSet()

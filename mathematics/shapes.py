@@ -67,7 +67,8 @@ class Quad:
         a = u*(1-v)
         b = u*v
         v0, v1, v2 = self.faces_ti[face_id, 0]
-        return a*self.vertices_ti[v0, 0] + b*self.vertices_ti[v1, 0] + (1.0-a-b)*self.vertices_ti[v2, 0]
+        point = a*self.vertices_ti[v0, 0] + b*self.vertices_ti[v1, 0] + (1.0-a-b)*self.vertices_ti[v2, 0]
+        return point, self.normals_ti[face_id, 0], self.bsdf.evaluate()
 
     def visualize(self):
         self.mesh.show()
@@ -88,9 +89,9 @@ class Quad:
                 face_id = i
                 hit_anything = 1
 
-        next_rd, attenuation = self.bsdf.scatter()
+        next_rd, attenuation, pdf = self.bsdf.scatter(-rd)
         emit, sided = self.bsdf.emitting_light, self.bsdf.sided
-        return hit_anything, t_min, self.normals_ti[face_id, 0], next_rd, attenuation, emit, sided
+        return hit_anything, t_min, self.normals_ti[face_id, 0], next_rd, attenuation, pdf, emit, sided
 
     @property
     def bounding_box(self):
@@ -176,7 +177,8 @@ class Cube:
         a = u*(1-v)
         b = u*v
         v0, v1, v2 = self.faces_ti[face_id, 0]
-        return a*self.vertices_ti[v0, 0] + b*self.vertices_ti[v1, 0] + (1.0-a-b)*self.vertices_ti[v2, 0]
+        point = a*self.vertices_ti[v0, 0] + b*self.vertices_ti[v1, 0] + (1.0-a-b)*self.vertices_ti[v2, 0]
+        return point, self.normals_ti[face_id, 0], self.bsdf.evaluate()
 
     def normal_shape(self):
         return Cube2(self.trans_mat, self.bsdf)
@@ -199,9 +201,9 @@ class Cube:
                 face_id = i
                 hit_anything = 1
 
-        next_rd, attenuation = self.bsdf.scatter()
+        next_rd, attenuation, pdf = self.bsdf.scatter(-rd)
         emit, sided = self.bsdf.emitting_light, self.bsdf.sided
-        return hit_anything, t_min, self.normals_ti[face_id, 0], next_rd, attenuation, emit, sided
+        return hit_anything, t_min, self.normals_ti[face_id, 0], next_rd, attenuation, pdf, emit, sided
 
     @property
     def bounding_box(self):

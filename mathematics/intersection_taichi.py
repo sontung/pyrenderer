@@ -197,14 +197,17 @@ class World:
     @ti.func
     def sample_a_light(self):
         point = Vector(0.0, 0.0, 0.0)
+        normal = Vector(0.0, 0.0, 0.0)
+        em = Vector(0.0, 0.0, 0.0)
+
         if len(self.lights) > 1:
             light_id = randInt(0, len(self.lights)-1)
             for i in ti.static(range(len(self.lights))):
                 if i == light_id:
-                    point = self.lights[i].sample_a_point()
+                    point, normal, em = self.lights[i].sample_a_point()
         else:
-            point = self.lights[0].sample_a_point()
-        return point
+            point, normal, em = self.lights[0].sample_a_point()
+        return point, normal, em
 
     def add(self, prim):
         prim.id = len(self.primitives)
@@ -225,11 +228,11 @@ class World:
         return self.bvh_min(i), self.bvh_max(i)
 
     @ti.func
-    def hit_all(self, ray_origin, ray_direction):
+    def hit_all(self, ray_origin, ray_direction, t_min, closest_so_far):
         ''' Intersects a ray against all objects. '''
         hit_anything = False
-        t_min = 0.0001
-        closest_so_far = 99999.9
+        # t_min = 0.0001
+        # closest_so_far = 99999.9
         hit_index = 0
         p = Point(0.0, 0.0, 0.0)
         normal = Vector(0.0, 0.0, 0.0)
@@ -239,6 +242,7 @@ class World:
         front_facing = True
         sided = 1
         curr = self.bvh.bvh_root
+        final_pdf = 0
 
         # walk the bvh tree
         while curr != -1:
@@ -247,7 +251,7 @@ class World:
             if obj_id != -1:
                 for i in ti.static(range(len(self.primitives))):
                     if i == obj_id:
-                        hit, t, n, next_ray_d, att, emit, bsdf_sided = self.primitives[i].hit(ray_origin, ray_direction,
+                        hit, t, n, next_ray_d, att, pdf, emit, bsdf_sided = self.primitives[i].hit(ray_origin, ray_direction,
                                                                                               t_min, closest_so_far)
                         if hit > 0:
                             hit_anything = True
@@ -257,6 +261,7 @@ class World:
                             emissive = emit
                             attenuation = att
                             scattered_dir = next_ray_d
+                            final_pdf = pdf
                             sided = bsdf_sided
                 curr = next_id
             else:
@@ -276,7 +281,7 @@ class World:
             if not sided:
                 front_facing = is_front_facing(ray_direction, normal)
                 normal = normal if front_facing else -normal
-        return hit_anything, closest_so_far, p, normal, front_facing, hit_index, emissive, attenuation, scattered_dir
+        return hit_anything, closest_so_far, p, normal, emissive, attenuation, scattered_dir, final_pdf
 
     @ti.func
     def hit_slow(self, ray_origin, ray_direction):
