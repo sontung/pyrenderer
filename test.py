@@ -18,20 +18,15 @@ x_dim, y_dim = a_camera.get_resolution()
 image = np.zeros((x_dim, y_dim, 3), dtype=np.float32)
 ray_logger = RayLogger()
 
+ro = np.array([0.000000, 1.000000, 6.800000])
+rd = np.array([-0.061724, 0.001867, -0.998092])
+t = 6.759408
+ray_logger.add_line(ro, ro+rd*t)
 
-s1, s2 = [[-0.846925, 0.316525, -0.427235], [-0.316525, -0.427235, 0.846925]]
-
-from mathematics.mat4 import rotate_vector, rotate_to
-m1 = rotate_to(np.array([-1.000000, -0.000000, -0.000000]))
-s3 = rotate_vector(m1, np.array(s1))
-print(s3)
-
-t0, t1, ro, rd = 1.353912, 1.353912, [1.000000, 1.170249, -0.548879], [-0.636713, 0.598082, 0.486718]
-ro = np.array(ro)
-rd = np.array(rd)
-
-ray_logger.add_line(ro, ro+rd*t0)
-ray_logger.add_line(ro, ro+rd*t1, color=[0, 1, 0])
+ro = np.array([-0.417215, 1.012619, 0.053493])
+rd = np.array([0.214061, 0.541850, -0.812758])
+t = 0.345816
+ray_logger.add_line(ro, ro+rd*t)
 
 # for i in range(len(data)):
 #     ro, rd, t, nd, no = data[i]

@@ -209,6 +209,17 @@ class World:
             point, normal, em = self.lights[0].sample_a_point()
         return point, normal, em
 
+    @ti.func
+    def sample_a_point(self):
+        point = Vector(0.0, 0.0, 0.0)
+        normal = Vector(0.0, 0.0, 0.0)
+
+        light_id = randInt(0, len(self.primitives)-1)
+        for i in ti.static(range(len(self.primitives))):
+            if i == light_id:
+                point, normal, _ = self.primitives[i].sample_a_point()
+        return point, normal
+
     def add(self, prim):
         prim.id = len(self.primitives)
         self.primitives.append(prim)
@@ -242,7 +253,7 @@ class World:
         front_facing = True
         sided = 1
         curr = self.bvh.bvh_root
-        final_pdf = 0
+        final_pdf = 0.0
 
         # walk the bvh tree
         while curr != -1:

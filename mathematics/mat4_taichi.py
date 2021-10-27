@@ -44,6 +44,17 @@ def rotate_to(vector):
 
 
 @ti.func
+def rotate_z_to(vector):
+    """
+    transformation matrix to rotate the Y-axis to vector
+    :param vector:
+    :return:
+    """
+    res1, res2, res3, res4 = rotate_to(vector)
+    return res1, res3, -res2, res4
+
+
+@ti.func
 def rotate_vector(res1, res2, res3, vec):
     out_dir = vec[0]*res1+vec[1]*res2+vec[2]*res3
     homo_vec = Vector(out_dir[0], out_dir[1], out_dir[2])

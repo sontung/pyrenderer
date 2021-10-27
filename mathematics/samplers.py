@@ -11,17 +11,20 @@ import taichi as ti
 @ti.func
 def concentric_sample_disk(u):
     u_offset = 2.0*u-vec2(1, 1)
+    res = vec2(0.0, 0.0)
     if u_offset[0] == 0 and u_offset[1] == 0:
-        return vec2(0, 0)
-    theta = 0.0
-    r = 0.0
-    if ti.abs(u_offset[0]) > ti.abs(u_offset[1]):
-        r = u_offset[0]
-        theta = PiOver4 * (u_offset[1] / u_offset[0])
+        res = vec2(0.0, 0.0)
     else:
-        r = u_offset[1]
-        theta = PiOver2 - PiOver4*(u_offset[0]/u_offset[1])
-    return r*vec2(ti.cos(theta), ti.sin(theta))
+        theta = 0.0
+        r = 0.0
+        if ti.abs(u_offset[0]) > ti.abs(u_offset[1]):
+            r = u_offset[0]
+            theta = PiOver4 * (u_offset[1] / u_offset[0])
+        else:
+            r = u_offset[1]
+            theta = PiOver2 - PiOver4*(u_offset[0]/u_offset[1])
+        res = r*vec2(ti.cos(theta), ti.sin(theta))
+    return res
 
 
 @ti.func

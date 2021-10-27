@@ -3,6 +3,8 @@ import trimesh
 import random
 import taichi as ti
 from math import sqrt
+from .vec3_taichi import Vector
+from .mat4_taichi import rotate_z_to, rotate_vector
 from .constants import MAX_F
 from .intersection_taichi import ray_triangle_hit, ray_triangle_hit2
 from .bbox import BBox
@@ -82,15 +84,25 @@ class Quad:
             face = self.faces_ti[i, 0]
             hit, t = ray_triangle_hit(self.vertices_ti[face[0], 0], self.vertices_ti[face[1], 0],
                                       self.vertices_ti[face[2], 0], ro, rd, t0, t1)
-
             if hit > 0 and t < t_min:
                 t1 = t
                 t_min = t
                 face_id = i
                 hit_anything = 1
 
-        next_rd, attenuation, pdf = self.bsdf.scatter(-rd)
-        emit, sided = self.bsdf.emitting_light, self.bsdf.sided
+        next_rd = Vector(0.0, 0.0, 0.0)
+        attenuation = Vector(0.0, 0.0, 0.0)
+        pdf = 0.0
+        emit = 0
+        sided = 0
+        if hit_anything:
+            next_rd, attenuation, pdf = self.bsdf.scatter(-rd)
+            emit, sided = self.bsdf.emitting_light, self.bsdf.sided
+
+            # rotate
+            r1, r2, r3, r4 = rotate_z_to(self.normals_ti[face_id, 0])
+            next_rd = rotate_vector(r1, r2, r3, next_rd)
+
         return hit_anything, t_min, self.normals_ti[face_id, 0], next_rd, attenuation, pdf, emit, sided
 
     @property
@@ -201,8 +213,19 @@ class Cube:
                 face_id = i
                 hit_anything = 1
 
-        next_rd, attenuation, pdf = self.bsdf.scatter(-rd)
-        emit, sided = self.bsdf.emitting_light, self.bsdf.sided
+        next_rd = Vector(0.0, 0.0, 0.0)
+        attenuation = Vector(0.0, 0.0, 0.0)
+        pdf = 0.0
+        emit = 0
+        sided = 0
+        if hit_anything:
+            next_rd, attenuation, pdf = self.bsdf.scatter(-rd)
+            emit, sided = self.bsdf.emitting_light, self.bsdf.sided
+
+            # rotate
+            r1, r2, r3, r4 = rotate_z_to(self.normals_ti[face_id, 0])
+            next_rd = rotate_vector(r1, r2, r3, next_rd)
+
         return hit_anything, t_min, self.normals_ti[face_id, 0], next_rd, attenuation, pdf, emit, sided
 
     @property

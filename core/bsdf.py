@@ -13,11 +13,15 @@ Scatter = namedtuple("Scatter", ["direction", "scale"])
 
 @ti.func
 def same_hemisphere(w, wp):
-    return w[1]*wp[1] > 0
+    return w[2]*wp[2] > 0
 
 
 @ti.data_oriented
 class BSDFLambertian:
+    """
+    implement lambertian reflection in
+    https://www.pbr-book.org/3ed-2018/Light_Transport_I_Surface_Reflection/Sampling_Reflection_Functions#
+    """
     def __init__(self, data):
         self.rho = Vector(data['albedo'][0], data['albedo'][1], data['albedo'][2])
         self.emitting_light = 0
@@ -27,8 +31,8 @@ class BSDFLambertian:
     def scatter(self, wo):
         u = vec2(rand(), rand())
         wi = cosine_sample_hemisphere(u)
-        if wi[1] < 0.0:
-            wi[1] *= -1
+        if wo[2] < 0.0:
+            wi[2] *= -1.0
         pdf = self.pdf(wo, wi)
         return wi, self.evaluate(), pdf
 
@@ -38,9 +42,9 @@ class BSDFLambertian:
 
     @ti.func
     def pdf(self, wo, wi):
-        res = 0
+        res = 0.0
         if same_hemisphere(wo, wi):
-            res = ti.abs(wi[1]) * InvPi
+            res = ti.abs(wi[2]) * InvPi
         return res
 
 
@@ -55,8 +59,21 @@ class BSDFLight:
     def evaluate(self):
         return Vector(self.rho, self.rho, self.rho)
 
-    def scatter(self):
-        return Vector(0.0, 0.0, 0.0), Vector(self.rho, self.rho, self.rho)
+    @ti.func
+    def pdf(self, wo, wi):
+        res = 0.0
+        if same_hemisphere(wo, wi):
+            res = ti.abs(wi[2]) * InvPi
+        return res
+
+    @ti.func
+    def scatter(self, wo):
+        u = vec2(rand(), rand())
+        wi = cosine_sample_hemisphere(u)
+        if wo[2] < 0.0:
+            wi[2] *= -1.0
+        pdf = self.pdf(wo, wi)
+        return wi, self.evaluate(), pdf
 
 
 @ti.data_oriented

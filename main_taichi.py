@@ -48,7 +48,10 @@ if __name__ == '__main__':
     t_stored = ti.field(dtype=ti.f32, shape=(image_width, image_height))
     hit_stored = ti.field(dtype=ti.i8, shape=(image_width, image_height))
 
+    debugging = True
     samples_per_pixel = 512
+    if debugging:
+        samples_per_pixel = 1
     max_depth = 16
 
     # materials
@@ -112,10 +115,8 @@ if __name__ == '__main__':
     @ti.kernel
     def debug():
         for x, y in pixels:
-            if x != 16 or y != 962:
+            if x != 327 or y != 517:
                 continue
-            # x = 918
-            # y = 10
             u = (x + ti.random()) / (image_width - 1)
             v = (y + ti.random()) / (image_height - 1)
             ray_org, ray_dir = cam.gen_ray(u, v)
@@ -125,7 +126,6 @@ if __name__ == '__main__':
 
 
     num_pixels = image_width * image_height
-    debugging = False
     if not debugging:
         t = time()
         print('starting big wavefront')
