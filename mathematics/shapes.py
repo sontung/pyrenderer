@@ -92,18 +92,23 @@ class Quad:
 
         next_rd = Vector(0.0, 0.0, 0.0)
         attenuation = Vector(0.0, 0.0, 0.0)
+        normal = Vector(0.0, 0.0, 0.0)
         pdf = 0.0
         emit = 0
         sided = 0
+
         if hit_anything:
-            next_rd, attenuation, pdf = self.bsdf.scatter(-rd)
+            next_rd, attenuation, pdf = self.bsdf.scatter(rd)
             emit, sided = self.bsdf.emitting_light, self.bsdf.sided
+            normal = self.normals_ti[face_id, 0]
+            if not sided and normal.dot(-rd) < 0.0:
+                normal = -normal
 
             # rotate
-            r1, r2, r3, r4 = rotate_z_to(self.normals_ti[face_id, 0])
+            r1, r2, r3, r4 = rotate_z_to(normal)
             next_rd = rotate_vector(r1, r2, r3, next_rd)
 
-        return hit_anything, t_min, self.normals_ti[face_id, 0], next_rd, attenuation, pdf, emit, sided
+        return hit_anything, t_min, normal, next_rd, attenuation, pdf, emit, sided
 
     @property
     def bounding_box(self):
@@ -215,18 +220,23 @@ class Cube:
 
         next_rd = Vector(0.0, 0.0, 0.0)
         attenuation = Vector(0.0, 0.0, 0.0)
+        normal = Vector(0.0, 0.0, 0.0)
         pdf = 0.0
         emit = 0
         sided = 0
+
         if hit_anything:
-            next_rd, attenuation, pdf = self.bsdf.scatter(-rd)
+            next_rd, attenuation, pdf = self.bsdf.scatter(rd)
             emit, sided = self.bsdf.emitting_light, self.bsdf.sided
+            normal = self.normals_ti[face_id, 0]
+            if not sided and normal.dot(-rd) < 0.0:
+                normal = -normal
 
             # rotate
-            r1, r2, r3, r4 = rotate_z_to(self.normals_ti[face_id, 0])
+            r1, r2, r3, r4 = rotate_z_to(normal)
             next_rd = rotate_vector(r1, r2, r3, next_rd)
 
-        return hit_anything, t_min, self.normals_ti[face_id, 0], next_rd, attenuation, pdf, emit, sided
+        return hit_anything, t_min, normal, next_rd, attenuation, pdf, emit, sided
 
     @property
     def bounding_box(self):

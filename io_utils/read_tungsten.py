@@ -3,6 +3,7 @@ from core.scene import Scene
 from core.bsdf import BSDF
 from core.camera import Camera
 from mathematics.shapes import Quad, Cube
+
 from mathematics.affine_transformation import make_transformation_matrix
 
 PRIM_TYPES = {

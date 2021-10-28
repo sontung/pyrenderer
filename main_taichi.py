@@ -48,7 +48,7 @@ if __name__ == '__main__':
     t_stored = ti.field(dtype=ti.f32, shape=(image_width, image_height))
     hit_stored = ti.field(dtype=ti.i8, shape=(image_width, image_height))
 
-    debugging = True
+    debugging = False
     samples_per_pixel = 512
     if debugging:
         samples_per_pixel = 1

@@ -30,8 +30,11 @@ class Scene:
 
     def add_primitive(self, prim):
         self.primitives.append(prim)
-        prim = prim.normal_shape()
-        self.primitives2.append(prim)
+        try:
+            prim = prim.normal_shape()
+            self.primitives2.append(prim)
+        except AttributeError:
+            pass
         if prim.bsdf.emitting_light:
             self.lights.append(prim)
         if self.vertices is None:
@@ -86,4 +89,3 @@ class Scene:
         while True:
             vis.poll_events()
             vis.update_renderer()
-

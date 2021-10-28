@@ -1,8 +1,6 @@
-import random
-import numpy as np
-from math import sqrt, cos, sin
 from .constants import Pi, PiOver2, PiOver4, InvPi
 from .vec3_taichi import Vector
+from .mat4_taichi import rotate_vector, rotate_z_to
 from taichi_glsl.randgen import rand
 from taichi_glsl.vector import vec2
 import taichi as ti
@@ -40,13 +38,9 @@ def cosine_hemisphere_pdf(cos_theta):
 
 
 @ti.func
-def cosine_sampling():
-    phi = rand() * 2.0 * Pi
-    cos_t = ti.sqrt(rand())
-
-    sin_t = ti.sqrt(1 - cos_t * cos_t)
-    x = ti.cos(phi) * sin_t
-    z = ti.sin(phi) * sin_t
-    y = cos_t
-
-    return Vector(x, y, z)
+def cosine_sample_hemisphere_convenient(normal_world_space):
+    u = vec2(rand(), rand())
+    r1, r2, r3, r4 = rotate_z_to(normal_world_space)
+    vec = cosine_sample_hemisphere(u)
+    vec = rotate_vector(r1, r2, r3, vec)
+    return vec

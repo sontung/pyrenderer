@@ -1,5 +1,4 @@
 import numpy as np
-from mathematics.constants import MAX_F
 from mathematics.intersection import triangle_ray_intersection_grouping
 
 

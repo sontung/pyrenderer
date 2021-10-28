@@ -1,37 +1,33 @@
-from io_utils.read_tungsten import read_file
+from io_utils.read_utils_debug import read_scene
 from debug.ray_logger import RayLogger
-import taichi as ti
+from mathematics.samplers_debug import cosine_sample_hemisphere
 import numpy as np
 import open3d as o3d
 
-ti.init()
-data = [
-    ([0.000000, 1.000000, 6.800000], [0.134840, 0.132964, -0.981906], 7.416195, [-1.000000, -0.000000, -0.000000], [1.000000, 1.986086, -0.482004]),
-    # ([1.000000, 1.986086, -0.482004], [0.427235, 0.846925, 0.316525], 1.898438, [0.000000, 0.000000, 0.000000], [0.000000, 0.000000, 0.000000]),
-    # ([1.000000, 1.131270, 0.848348], [-0.282163, 0.662193, 0.694179], 0.5)
-    # ([0.335731, 0.600000, 0.528806], [0.413983, 0.155196, 0.896957], 10)
-]
+a_scene = read_scene("media/cornell-box/scene.json")
 
-a_scene, a_camera = read_file("media/cornell-box/scene.json")
-
-x_dim, y_dim = a_camera.get_resolution()
-image = np.zeros((x_dim, y_dim, 3), dtype=np.float32)
 ray_logger = RayLogger()
 
-ro = np.array([0.000000, 1.000000, 6.800000])
-rd = np.array([-0.061724, 0.001867, -0.998092])
-t = 6.759408
-ray_logger.add_line(ro, ro+rd*t)
+data = [
+    [1, 0, 6.759408, [0.000000, 1.000000, 6.800000], [-0.061724, 0.001867, -0.998092], [-0.214061, 0.541850, 0.812758],
+[-0.328669, 0.000000, -0.944445]],
+]
 
-ro = np.array([-0.417215, 1.012619, 0.053493])
-rd = np.array([0.214061, 0.541850, -0.812758])
-t = 0.345816
-ray_logger.add_line(ro, ro+rd*t)
+for d in data:
+    _, _, t, ro, rd, wi, n = d
 
-# for i in range(len(data)):
-#     ro, rd, t, nd, no = data[i]
-#     ray_logger.add_line(np.array(ro), np.array(rd)*t+np.array(ro))
-#     ray_logger.add_line(np.array(no), np.array(nd)*0.5+np.array(no), color=[0, 1, 0])
+    ro = np.array(ro)
+    rd = np.array(rd)
+    n = np.array(n)
+    wi = np.array(wi)
+
+    # ray_logger.add_line(ro, ro+t*rd)
+    ray_logger.add_line(ro+t*rd, (ro+t*rd)-0.5*n)
+    ray_logger.add_line(ro+t*rd, (ro+t*rd)+0.5*wi, color=[0, 0, 1])
+
+    ray_logger.add_line(ro+t*rd, (ro+t*rd)-0.5*wi, color=[0, 1, 0])
+
+
 
 
 line_set = o3d.geometry.LineSet()

@@ -1,8 +1,6 @@
 from .constants import EPS, MAX_F
 from .fast_op import fast_dot3, cross_product, fast_subtract, numba_tile, compute_pos
-from .interection_ti import triangle_ray_intersection_grouping_numba as ti_tri_intersect
 import numpy as np
-import taichi as ti
 from numba import njit
 
 

@@ -19,7 +19,7 @@ class Quad:
             [0, 1, 2],
             [2, 3, 0]
         ], np.uint)
-        normal_vector = np.array([0, 1, 0], np.float32)
+        normal_vector = np.array([0, 1, 0], np.float64)
         self.trans_mat = trans_mat
         self.normal_vectors = np.tile(normal_vector, (default_faces.shape[0], 1))
         self.mesh = trimesh.Trimesh(vertices=default_vertices,
@@ -54,17 +54,17 @@ class Quad:
             self.e2.append(e2)
             self.e1.append(e1)
 
-        self.s_array = np.zeros((self.faces.shape[0]*3,), np.float32)
-        self.q_array = np.zeros((self.faces.shape[0]*3,), np.float32)
-        self.r_array = np.zeros((self.faces.shape[0]*3,), np.float32)
+        self.s_array = np.zeros((self.faces.shape[0]*3,), np.float64)
+        self.q_array = np.zeros((self.faces.shape[0]*3,), np.float64)
+        self.r_array = np.zeros((self.faces.shape[0]*3,), np.float64)
         self.first_vertices = np.hstack(self.first_vertices)
         self.e2 = np.hstack(self.e2)
         self.e1 = np.hstack(self.e1)
-        self.a_array = np.zeros((self.faces.shape[0],), np.float32)
-        self.e2r_array = np.zeros((self.faces.shape[0],), np.float32)
-        self.sq_array = np.zeros((self.faces.shape[0],), np.float32)
-        self.rdr_array = np.zeros((self.faces.shape[0],), np.float32)
-        self.res_array = np.zeros((self.faces.shape[0]*2,), np.float32)
+        self.a_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.e2r_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
         for i in range(self.faces.shape[0]):
             self.res_array[i*2] = -1.0
 
@@ -136,7 +136,7 @@ class Cube:
             [-1, 0, 0],
             [1, 0, 0],
             [1, 0, 0],
-        ], np.float32)
+        ], np.float64)
         self.trans_mat = trans_mat
 
         self.mesh = trimesh.Trimesh(vertices=default_vertices,
@@ -169,17 +169,17 @@ class Cube:
             self.first_vertices.append(self.vertices[triangle[0]])
             self.e2.append(e2)
             self.e1.append(e1)
-        self.s_array = np.zeros((self.faces.shape[0]*3,), np.float32)
-        self.q_array = np.zeros((self.faces.shape[0]*3,), np.float32)
-        self.r_array = np.zeros((self.faces.shape[0]*3,), np.float32)
+        self.s_array = np.zeros((self.faces.shape[0]*3,), np.float64)
+        self.q_array = np.zeros((self.faces.shape[0]*3,), np.float64)
+        self.r_array = np.zeros((self.faces.shape[0]*3,), np.float64)
         self.e2 = np.hstack(self.e2)
         self.e1 = np.hstack(self.e1)
         self.first_vertices = np.hstack(self.first_vertices)
-        self.a_array = np.zeros((self.faces.shape[0],), np.float32)
-        self.e2r_array = np.zeros((self.faces.shape[0],), np.float32)
-        self.sq_array = np.zeros((self.faces.shape[0],), np.float32)
-        self.rdr_array = np.zeros((self.faces.shape[0],), np.float32)
-        self.res_array = np.zeros((self.faces.shape[0]*2,), np.float32)
+        self.a_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.e2r_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.sq_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.rdr_array = np.zeros((self.faces.shape[0],), np.float64)
+        self.res_array = np.zeros((self.faces.shape[0]*2,), np.float64)
         for i in range(self.faces.shape[0]):
             self.res_array[i*2] = -1.0
 

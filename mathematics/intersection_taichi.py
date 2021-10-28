@@ -263,7 +263,7 @@ class World:
                 for i in ti.static(range(len(self.primitives))):
                     if i == obj_id:
                         hit, t, n, next_ray_d, att, pdf, emit, bsdf_sided = self.primitives[i].hit(ray_origin, ray_direction,
-                                                                                              t_min, closest_so_far)
+                                                                                                   t_min, closest_so_far)
                         if hit > 0:
                             hit_anything = True
                             closest_so_far = t
@@ -289,9 +289,6 @@ class World:
 
         if hit_anything:
             p = ray.at(ray_origin, ray_direction, closest_so_far)
-            if not sided:
-                front_facing = is_front_facing(ray_direction, normal)
-                normal = normal if front_facing else -normal
         return hit_anything, closest_so_far, p, normal, emissive, attenuation, scattered_dir, final_pdf
 
     @ti.func
@@ -324,6 +321,5 @@ class World:
 
         if hit_anything and not sided:
             p = ray.at(ray_origin, ray_direction, closest_so_far)
-            front_facing = is_front_facing(ray_direction, normal)
-            normal = normal if front_facing else -normal
+
         return hit_anything, closest_so_far, p, normal, front_facing, hit_index, emissive, attenuation, scattered_dir

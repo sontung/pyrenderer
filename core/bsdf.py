@@ -1,5 +1,4 @@
 from mathematics.constants import InvPi
-from mathematics.samplers import cosine_sampling
 from mathematics.vec3_taichi import Vector
 from collections import namedtuple
 from mathematics.samplers import cosine_sample_hemisphere
@@ -31,8 +30,6 @@ class BSDFLambertian:
     def scatter(self, wo):
         u = vec2(rand(), rand())
         wi = cosine_sample_hemisphere(u)
-        if wo[2] < 0.0:
-            wi[2] *= -1.0
         pdf = self.pdf(wo, wi)
         return wi, self.evaluate(), pdf
 
@@ -70,8 +67,6 @@ class BSDFLight:
     def scatter(self, wo):
         u = vec2(rand(), rand())
         wi = cosine_sample_hemisphere(u)
-        if wo[2] < 0.0:
-            wi[2] *= -1.0
         pdf = self.pdf(wo, wi)
         return wi, self.evaluate(), pdf
 
