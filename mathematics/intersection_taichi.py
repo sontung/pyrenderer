@@ -262,8 +262,10 @@ class World:
             if obj_id != -1:
                 for i in ti.static(range(len(self.primitives))):
                     if i == obj_id:
-                        hit, t, n, next_ray_d, att, pdf, emit, bsdf_sided = self.primitives[i].hit(ray_origin, ray_direction,
-                                                                                                   t_min, closest_so_far)
+                        hit, t, n, next_ray_d, att, pdf, emit, bsdf_sided = self.primitives[i].hit(ray_origin,
+                                                                                                   ray_direction,
+                                                                                                   t_min,
+                                                                                                   closest_so_far)
                         if hit > 0:
                             hit_anything = True
                             closest_so_far = t

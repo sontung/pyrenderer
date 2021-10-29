@@ -1,12 +1,10 @@
 import numpy as np
 import trimesh
-import random
 import taichi as ti
-from math import sqrt
 from .vec3_taichi import Vector
 from .mat4_taichi import rotate_z_to, rotate_vector
-from .constants import MAX_F
-from .intersection_taichi import ray_triangle_hit, ray_triangle_hit2
+from .constants import MAX_F, InvPi
+from .intersection_taichi import ray_triangle_hit
 from .bbox import BBox
 from .vec3 import normalize_vector
 from .shapes2 import Quad as Quad2
@@ -107,6 +105,7 @@ class Quad:
             # rotate
             r1, r2, r3, r4 = rotate_z_to(normal)
             next_rd = rotate_vector(r1, r2, r3, next_rd)
+            pdf = ti.abs(normal.dot(next_rd)) * InvPi
 
         return hit_anything, t_min, normal, next_rd, attenuation, pdf, emit, sided
 
@@ -235,6 +234,7 @@ class Cube:
             # rotate
             r1, r2, r3, r4 = rotate_z_to(normal)
             next_rd = rotate_vector(r1, r2, r3, next_rd)
+            pdf = ti.abs(normal.dot(next_rd)) * InvPi
 
         return hit_anything, t_min, normal, next_rd, attenuation, pdf, emit, sided
 

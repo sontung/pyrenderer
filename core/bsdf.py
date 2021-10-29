@@ -39,10 +39,7 @@ class BSDFLambertian:
 
     @ti.func
     def pdf(self, wo, wi):
-        res = 0.0
-        if same_hemisphere(wo, wi):
-            res = ti.abs(wi[2]) * InvPi
-        return res
+        return ti.abs(wi[2]) * InvPi
 
 
 @ti.data_oriented
@@ -58,10 +55,7 @@ class BSDFLight:
 
     @ti.func
     def pdf(self, wo, wi):
-        res = 0.0
-        if same_hemisphere(wo, wi):
-            res = ti.abs(wi[2]) * InvPi
-        return res
+        return ti.abs(wi[2]) * InvPi
 
     @ti.func
     def scatter(self, wo):

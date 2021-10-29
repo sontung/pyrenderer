@@ -50,7 +50,7 @@ class PathTracer:
         w2 = normalize(p - p2)
         t_at_light = (p2[0] - p[0])/w[0]
 
-        hit, t, hit_pos, normal2, emitting_light, _, _, pdf = self.world.hit_all(
+        hit, t, d1, d2, d3, d4, d5, d6 = self.world.hit_all(
             p, w, 0.0001, t_at_light)
         if hit == 0:
             radiance += emissive * dot(normal, w) * dot(n2, w2) / sqrLength(p - p2)
@@ -74,7 +74,6 @@ class PathTracer:
             if bounce == 0 and hit > 0 and emitting_light > 0:
                 inv_rd = -rd
                 L += beta*inv_rd.dot(normal)
-                break
 
             if hit == 0 or bounce >= depth:
                 break
@@ -84,8 +83,7 @@ class PathTracer:
             L += Ld
 
             # indirect lighting
-            beta *= attenuation*ti.abs(wi.dot(normal))/pdf
-
+            # beta *= attenuation*ti.abs(wi.dot(normal))/pdf
             ro = hit_pos
             rd = wi
         return L
