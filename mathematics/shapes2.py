@@ -2,6 +2,7 @@ import numpy as np
 import trimesh
 import random
 from math import sqrt
+from .samplers_debug import cosine_sample_hemisphere
 from .intersection import triangle_ray_intersection_grouping
 from .bbox import BBox
 from .vec3 import normalize_vector
@@ -88,7 +89,14 @@ class Quad:
         if len(hit_results) > 0:
             ret, tri_ind = min(hit_results, key=lambda du: du[0]["t"])
             ret["bsdf"] = self.bsdf
-            ret["normal"] = self.normal_vectors[tri_ind]
+            if np.dot(self.normal_vectors[tri_ind], -ray.direction) < 0.0:
+                ret["normal"] = -self.normal_vectors[tri_ind]
+            else:
+                ret["normal"] = self.normal_vectors[tri_ind]
+
+            direction = cosine_sample_hemisphere(ret["normal"])
+            ret["wi"] = direction
+
             return ret
         else:
             return {"hit": False}
@@ -194,7 +202,14 @@ class Cube:
         if len(hit_results) > 0:
             ret, tri_ind = min(hit_results, key=lambda du: du[0]["t"])
             ret["bsdf"] = self.bsdf
-            ret["normal"] = self.normal_vectors[tri_ind]
+            if np.dot(self.normal_vectors[tri_ind], -ray.direction) < 0.0:
+                ret["normal"] = -self.normal_vectors[tri_ind]
+            else:
+                ret["normal"] = self.normal_vectors[tri_ind]
+
+            direction = cosine_sample_hemisphere(ret["normal"])
+            ret["wi"] = direction
+
             return ret
         else:
             return {"hit": False}

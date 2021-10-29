@@ -51,7 +51,7 @@ def rotate_z_to(vector):
     :return:
     """
     res1, res2, res3, res4 = rotate_to(vector)
-    return res1, res3, -res2, res4
+    return res1, res3, res2, res4
 
 
 @ti.func

@@ -20,6 +20,14 @@ def concentric_sample_disk(u):
     return res
 
 
+def cosine_sample_hemisphere2():
+    u = np.random.rand(2)
+    d = concentric_sample_disk(u)
+    z = np.sqrt(max([0.0, 1-d[0]*d[0]-d[1]*d[1]]))
+    vec = np.array([d[0], d[1], z])
+    return vec
+
+
 def cosine_sample_hemisphere(normal_world_space):
     u = np.random.rand(2)
     d = concentric_sample_disk(u)
@@ -40,11 +48,6 @@ def rotate_to(vector):
     :return:
     """
     vector = normalize_vector(vector)
-
-    res1 = np.array([1.0, 0.0, 0.0, 0.0])
-    res2 = np.array([0.0, 1.0, 0.0, 0.0])
-    res3 = np.array([0.0, 0.0, 1.0, 0.0])
-    res4 = np.array([0.0, 0.0, 0.0, 1.0])
 
     if abs(vector[1]-1.0) < 0.0:
         res1 = np.array([1.0, 0.0, 0.0, 0.0])
@@ -74,7 +77,7 @@ def rotate_z_to(vector):
     :return:
     """
     res1, res2, res3, res4 = rotate_to(vector)
-    return res1, res3, -res2, res4
+    return res1, res3, res2, res4
 
 
 def rotate_vector(res1, res2, res3, vec):

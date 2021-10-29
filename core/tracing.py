@@ -84,7 +84,7 @@ class PathTracer:
             L += Ld
 
             # indirect lighting
-            # beta *= attenuation*ti.abs(wi.dot(normal))/pdf
+            beta *= attenuation*ti.abs(wi.dot(normal))/pdf
 
             ro = hit_pos
             rd = wi
