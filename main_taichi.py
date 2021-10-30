@@ -49,10 +49,10 @@ if __name__ == '__main__':
     hit_stored = ti.field(dtype=ti.i8, shape=(image_width, image_height))
 
     debugging = False
-    samples_per_pixel = 512
+    samples_per_pixel = 64
     if debugging:
         samples_per_pixel = 1
-    max_depth = 16
+    max_depth = 8
 
     # materials
     mat_ground = Lambert([0.5, 0.5, 0.5])

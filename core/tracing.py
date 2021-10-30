@@ -53,7 +53,8 @@ class PathTracer:
         hit, t, d1, d2, d3, d4, d5, d6 = self.world.hit_all(
             p, w, 0.0001, t_at_light)
         if hit == 0:
-            radiance += emissive * dot(normal, w) * dot(n2, w2) / sqrLength(p - p2)
+            if dot(normal, w) > 0.0 and dot(n2, w2) > 0.0:
+                radiance += emissive * dot(normal, w) * dot(n2, w2) / sqrLength(p - p2)
         return radiance
 
     @ti.func
@@ -73,7 +74,8 @@ class PathTracer:
             # print(normal)
             if bounce == 0 and hit > 0 and emitting_light > 0:
                 inv_rd = -rd
-                L += beta*inv_rd.dot(normal)
+                if inv_rd.dot(normal) > 0.0:
+                    L += beta*inv_rd.dot(normal)
 
             if hit == 0 or bounce >= depth:
                 break
