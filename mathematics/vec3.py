@@ -12,6 +12,8 @@ def norm(vector):
 
 def normalize_vector(vector):
     n = norm(vector)
+    if abs(n) <= 0.0001:
+        print("norm", n, vector)
     return vector/n
 
 

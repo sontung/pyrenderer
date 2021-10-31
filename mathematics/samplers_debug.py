@@ -2,7 +2,7 @@ import random
 import numpy as np
 from math import sqrt, cos, sin
 from .vec3 import normalize_vector
-from .constants import Pi, PiOver2, PiOver4, InvPi
+from .constants import Pi, PiOver2, PiOver4, InvPi, EPS
 
 
 def concentric_sample_disk(u):
@@ -49,13 +49,13 @@ def rotate_to(vector):
     """
     vector = normalize_vector(vector)
 
-    if abs(vector[1]-1.0) < 0.0:
+    if abs(vector[1]-1.0) < EPS:
         res1 = np.array([1.0, 0.0, 0.0, 0.0])
         res2 = np.array([0.0, 1.0, 0.0, 0.0])
         res3 = np.array([0.0, 0.0, 1.0, 0.0])
         res4 = np.array([0.0, 0.0, 0.0, 1.0])
 
-    elif abs(vector[1]+1.0) < 0.0:
+    elif abs(vector[1]+1.0) < EPS:
         res1 = np.array([1.0, 0.0, 0.0, 0.0])
         res2 = np.array([0.0, -1.0, 0.0, 0.0])
         res3 = np.array([0.0, 0.0, 1.0, 0.0])
@@ -83,5 +83,6 @@ def rotate_z_to(vector):
 def rotate_vector(res1, res2, res3, vec):
     out_dir = vec[0]*res1+vec[1]*res2+vec[2]*res3
     homo_vec = np.array([out_dir[0], out_dir[1], out_dir[2]])
-    homo_vec = normalize_vector(homo_vec)
-    return homo_vec
+    homo_vec2 = normalize_vector(homo_vec)
+
+    return homo_vec2

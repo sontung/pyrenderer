@@ -89,10 +89,13 @@ class Quad:
         if len(hit_results) > 0:
             ret, tri_ind = min(hit_results, key=lambda du: du[0]["t"])
             ret["bsdf"] = self.bsdf
+
             if np.dot(self.normal_vectors[tri_ind], -ray.direction) < 0.0:
                 ret["normal"] = -self.normal_vectors[tri_ind]
+                print("flip")
             else:
                 ret["normal"] = self.normal_vectors[tri_ind]
+                print("dont flip")
 
             direction = cosine_sample_hemisphere(ret["normal"])
             ret["wi"] = direction

@@ -52,6 +52,11 @@ if __name__ == '__main__':
     samples_per_pixel = 64
     if debugging:
         samples_per_pixel = 1
+        import random
+        xc = random.randint(0, image_width)
+        yc = random.randint(0, image_height)
+        print("debugging with", xc, yc)
+
     max_depth = 8
 
     # materials
@@ -115,7 +120,7 @@ if __name__ == '__main__':
     @ti.kernel
     def debug():
         for x, y in pixels:
-            if x != 327 or y != 517:
+            if x != xc or y != yc:
                 continue
             u = (x + ti.random()) / (image_width - 1)
             v = (y + ti.random()) / (image_height - 1)

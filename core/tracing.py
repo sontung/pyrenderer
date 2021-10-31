@@ -53,8 +53,10 @@ class PathTracer:
         hit, t, d1, d2, d3, d4, d5, d6 = self.world.hit_all(
             p, w, 0.0001, t_at_light)
         if hit == 0:
-            if dot(normal, w) > 0.0 and dot(n2, w2) > 0.0:
-                radiance += emissive * dot(normal, w) * dot(n2, w2) / sqrLength(p - p2)
+            if dot(n2, w2) > 0.0:
+                radiance += emissive
+            # if dot(normal, w) > 0.0 and dot(n2, w2) > 0.0:
+            #     radiance += emissive * dot(normal, w) * dot(n2, w2) / sqrLength(p - p2)
         return radiance
 
     @ti.func
