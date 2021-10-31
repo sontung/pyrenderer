@@ -41,7 +41,7 @@ if __name__ == '__main__':
                   (image_width, image_height)).place(pixels, sample_count,
                                                      needs_sample)
 
-    debugging = True
+    debugging = False
     samples_per_pixel = 16
     if debugging:
         samples_per_pixel = 1

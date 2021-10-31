@@ -45,7 +45,6 @@ class PathTracer:
     def sample_direct_lighting(self, p, normal):
         radiance = Vector(0.0, 0.0, 0.0)
         p2, n2, emissive = self.world.sample_a_light()
-        print(p2, n2)
 
         w = normalize(p2 - p)
         w2 = normalize(p - p2)
@@ -54,7 +53,8 @@ class PathTracer:
         hit, t, d1, d2, d3, d4, d5, d6 = self.world.hit_all(
             p, w, 0.0001, t_at_light)
         if hit == 0:
-            radiance += emissive
+            if dot(n2, w2) > 0.0:
+                radiance += emissive
             # if dot(normal, w) > 0.0 and dot(n2, w2) > 0.0:
             #     radiance += emissive * dot(normal, w) * dot(n2, w2) / sqrLength(p - p2)
         return radiance
@@ -76,8 +76,12 @@ class PathTracer:
             # print(normal)
             if hit > 0 and emitting_light > 0:
                 inv_rd = -rd
-                if inv_rd.dot(normal) > 0.0:
-                    L += attenuation
+                d1 = inv_rd.dot(normal)
+                if d1 > 0.0:
+                    if bounce == 0:
+                        L += attenuation
+                    else:
+                        L += attenuation*d1
                     break
                 else:
                     ro = hit_pos
