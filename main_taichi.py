@@ -40,16 +40,9 @@ if __name__ == '__main__':
     ti.root.dense(ti.ij,
                   (image_width, image_height)).place(pixels, sample_count,
                                                      needs_sample)
-    ray_o_stored = ti.Vector.field(n=3, dtype=ti.f32, shape=(image_width, image_height))
-    normal_stored = ti.Vector.field(n=3, dtype=ti.f32, shape=(image_width, image_height))
 
-    ray_d_stored = ti.Vector.field(n=3, dtype=ti.f32, shape=(image_width, image_height))
-    uv_stored = ti.Vector.field(n=2, dtype=ti.f32, shape=(image_width, image_height))
-    t_stored = ti.field(dtype=ti.f32, shape=(image_width, image_height))
-    hit_stored = ti.field(dtype=ti.i8, shape=(image_width, image_height))
-
-    debugging = False
-    samples_per_pixel = 64
+    debugging = True
+    samples_per_pixel = 16
     if debugging:
         samples_per_pixel = 1
         import random
@@ -58,12 +51,6 @@ if __name__ == '__main__':
         print("debugging with", xc, yc)
 
     max_depth = 8
-
-    # materials
-    mat_ground = Lambert([0.5, 0.5, 0.5])
-    mat2 = Lambert([0.4, 0.2, 0.2])
-    mat1 = Dielectric(1.5)
-    mat3 = Metal([0.7, 0.6, 0.5], 0.0)
 
     # world
     R = math.cos(math.pi / 4.0)
