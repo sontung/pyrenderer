@@ -89,6 +89,7 @@ if __name__ == '__main__':
         for x, y in pixels:
             if sample_count[x, y] == samples_per_pixel:
                 num_completed += 1
+                pixels[x, y] /= samples_per_pixel
                 continue
 
             # gen sample
