@@ -35,7 +35,7 @@ class PathTracer:
     def __init__(self, world, depth, img_w, img_h):
         self.world = world
         self.depth = depth
-        # self.r_field = ti.Vector.field(n=3, dtype=ti.f32, shape=(img_w, img_h, depth))
+        self.beta_field = ti.Vector.field(n=3, dtype=ti.f32, shape=(img_w, img_h))
         # self.e_field = ti.field(dtype=ti.f32, shape=(img_w, img_h, depth))
         # self.dr_field = ti.Vector.field(n=3, dtype=ti.f32, shape=(img_w, img_h, depth))
         # self.cosine_field = ti.field(dtype=ti.f32, shape=(img_w, img_h, depth))
@@ -77,19 +77,19 @@ class PathTracer:
                 if d1 > 0.0:
                     if bounce == 0:
                         L += attenuation
-                    else:
-                        L += attenuation*d1*beta
-                    break
-                else:
-                    break
+                    # else:
+                    #     L += attenuation*d1*beta
+                break
 
             if hit == 0 or bounce >= depth:
                 break
 
             # direct lighting
-            beta *= attenuation*ti.abs(wi.dot(normal))
+            beta *= attenuation#*ti.abs(wi.dot(normal))
             Ld = beta * self.sample_direct_lighting(hit_pos, normal)
             L += Ld
+            # beta *= attenuation#*ti.abs(wi.dot(normal))
+
 
             ro = hit_pos
             rd = wi
