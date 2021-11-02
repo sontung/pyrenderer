@@ -41,8 +41,8 @@ if __name__ == '__main__':
                   (image_width, image_height)).place(pixels, sample_count,
                                                      needs_sample)
 
-    debugging = False
-    samples_per_pixel = 512
+    debugging = True
+    samples_per_pixel = 16
     if debugging:
         samples_per_pixel = 1
         import random
@@ -50,7 +50,7 @@ if __name__ == '__main__':
         yc = random.randint(0, image_height)
         print("debugging with", xc, yc)
 
-    max_depth = 16
+    max_depth = 32
 
     # world
     R = math.cos(math.pi / 4.0)
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         for x, y in pixels:
             if sample_count[x, y] == samples_per_pixel:
                 num_completed += 1
-                pixels[x, y] /= samples_per_pixel
+                # pixels[x, y] /= samples_per_pixel
                 continue
 
             # gen sample

@@ -3,7 +3,7 @@ import taichi as ti
 from taichi_glsl.vector import normalize, invLength, dot, sqrLength
 from mathematics.vec3_taichi import Vector
 from mathematics.mat4_taichi import rotate_to, rotate_vector, transpose
-from mathematics.constants import EPS, Pi
+from mathematics.constants import EPS, Pi, InvPi
 from core.ray import Ray
 import sys
 
@@ -35,7 +35,7 @@ class PathTracer:
     def __init__(self, world, depth, img_w, img_h):
         self.world = world
         self.depth = depth
-        self.beta_field = ti.Vector.field(n=3, dtype=ti.f32, shape=(img_w, img_h))
+        # self.beta_field = ti.Vector.field(n=3, dtype=ti.f32, shape=(img_w, img_h))
         # self.e_field = ti.field(dtype=ti.f32, shape=(img_w, img_h, depth))
         # self.dr_field = ti.Vector.field(n=3, dtype=ti.f32, shape=(img_w, img_h, depth))
         # self.cosine_field = ti.field(dtype=ti.f32, shape=(img_w, img_h, depth))
@@ -69,8 +69,8 @@ class PathTracer:
         for bounce in range(depth):
             hit, t, hit_pos, normal, emitting_light, attenuation, wi, pdf = self.world.hit_all(
                 ro, rd, 0.00001, 99999.9)
-            # print(hit, bounce, t, ro, rd, wi)
-            # print(normal)
+            print(hit, t, ro, rd, wi, attenuation)
+            print(normal)
             if hit > 0 and emitting_light > 0:
                 inv_rd = -rd
                 d1 = inv_rd.dot(normal)
@@ -85,11 +85,10 @@ class PathTracer:
                 break
 
             # direct lighting
-            beta *= attenuation#*ti.abs(wi.dot(normal))
+            beta *= InvPi*attenuation*ti.abs(wi.dot(normal))/pdf
             Ld = beta * self.sample_direct_lighting(hit_pos, normal)
             L += Ld
             # beta *= attenuation#*ti.abs(wi.dot(normal))
-
 
             ro = hit_pos
             rd = wi
