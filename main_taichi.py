@@ -41,7 +41,7 @@ if __name__ == '__main__':
                   (image_width, image_height)).place(pixels, sample_count,
                                                      needs_sample)
 
-    debugging = True
+    debugging = False
     samples_per_pixel = 16
     if debugging:
         samples_per_pixel = 1
@@ -68,7 +68,17 @@ if __name__ == '__main__':
     @ti.kernel
     def finish():
         for x, y in pixels:
-            pixels[x, y] = ti.sqrt(pixels[x, y] / samples_per_pixel)
+            pixels[x, y] = pixels[x, y] / samples_per_pixel
+
+    @ti.kernel
+    def finish2():
+        sum = 0.0
+        for i, j in pixels:
+            luma = pixels[i, j][0] * 0.2126 + pixels[i, j][1] * 0.7152 + pixels[i, j][2] * 0.0722
+            sum += luma
+        mean = sum / (image_width * image_height)
+        for i, j in pixels:
+            pixels[i, j] = ti.sqrt(pixels[i, j] / mean * 0.6)
 
     @ti.kernel
     def wavefront_initial():
@@ -87,9 +97,9 @@ if __name__ == '__main__':
         '''
         num_completed = 0
         for x, y in pixels:
+
             if sample_count[x, y] == samples_per_pixel:
                 num_completed += 1
-                # pixels[x, y] /= samples_per_pixel
                 continue
 
             # gen sample
@@ -126,41 +136,11 @@ if __name__ == '__main__':
         num_completed = 0
         while num_completed < num_pixels:
             num_completed += wavefront_big()
-
-        finish()
+        finish2()
         print("completed in", time() - t)
         ti.imwrite(pixels.to_numpy(), 'out.png')
-        im = cv2.imread("out.png")
-        cv2.imshow("t", im)
+        cv2.imshow("t", pixels.to_numpy())
         cv2.waitKey()
         cv2.destroyAllWindows()
     else:
         debug()
-        # for x in range(0, image_width, 100):
-        #     for y in range(0, image_height, 100):
-        #         # if x != 50 or y != 700:
-        #         #     continue
-        #         u, v = uv_stored[x, y]
-        #         ray_org = ray_o_stored[x, y]
-        #         ray_dir = ray_d_stored[x, y]
-        #         n = normal_stored[x, y]
-        #         ray = a_camera.generate_ray(np.array([u, v]))
-        #         trace = a_scene.hit(ray)
-        #
-        #         normal_ref = trace["normal"]
-        #         diff = np.sum(np.abs(n.to_numpy()-normal_ref))
-        #         if diff > 0.01:
-        #             print(n, normal_ref)
-        #             print(x, y, diff)
-        #             sys.exit()
-        #
-        #         try:
-        #             assert trace["hit"]-hit_stored[x, y] == 0
-        #         except AssertionError:
-        #             print(u, v)
-        #             sys.exit()
-        #         if trace["hit"]:
-        #             diff = trace["t"]-t_stored[x, y]
-        #             if abs(diff) > 0.01:
-        #                 print(x, y, trace["t"], t_stored[x, y])
-        #                 sys.exit()

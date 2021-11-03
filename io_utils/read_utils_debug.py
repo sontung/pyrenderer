@@ -67,12 +67,16 @@ def read_scene(filename):
         data = json.load(json_file)
         a_scene = Scene()
 
+        name2bsdf = {}
+        for info_bsdf in data["bsdfs"]:
+            name2bsdf[info_bsdf["name"]] = info_bsdf["albedo"]
+
         # read primitives
         for info in data['primitives']:
             trans_mat = make_transformation_matrix(info["transform"])
             if info["type"] not in PRIM_TYPES_debug:
                 print(f"[WARNING] {info['type']} not implemented")
                 continue
-            prim = PRIM_TYPES_debug[info["type"]](trans_mat, None)
+            prim = PRIM_TYPES_debug[info["type"]](trans_mat, np.array(name2bsdf[info["bsdf"]]))
             a_scene.add_primitive(prim)
     return a_scene

@@ -56,6 +56,7 @@ data = [
 [-1.000000, -0.000000, -0.000000]]
 ]
 
+beta = np.ones((3,))
 for d in data:
     _, t, ro, rd, wi, _, n = d
 
@@ -64,7 +65,8 @@ for d in data:
     n = np.array(n)
     wi = np.array(wi)
     res = a_scene.hit(ro, rd)
-    print(res)
+    print(beta, res["bsdf"], beta*res["bsdf"], beta*res["bsdf"]*255)
+    beta *= res["bsdf"]
 
     ray_logger.add_line(ro, ro+t*rd, color=[0, 0, 0])
     ray_logger.add_line(ro+t*rd, (ro+t*rd)+0.5*n)

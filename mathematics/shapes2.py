@@ -92,10 +92,8 @@ class Quad:
 
             if np.dot(self.normal_vectors[tri_ind], -ray.direction) < 0.0:
                 ret["normal"] = -self.normal_vectors[tri_ind]
-                print("flip")
             else:
                 ret["normal"] = self.normal_vectors[tri_ind]
-                print("dont flip")
 
             direction = cosine_sample_hemisphere(ret["normal"])
             ret["wi"] = direction

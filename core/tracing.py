@@ -69,25 +69,23 @@ class PathTracer:
         for bounce in range(depth):
             hit, t, hit_pos, normal, emitting_light, attenuation, wi, pdf = self.world.hit_all(
                 ro, rd, 0.00001, 99999.9)
-            print(hit, t, ro, rd, wi, attenuation)
-            print(normal)
+            # print(hit, t, ro, rd, wi, attenuation)
+            # print(normal)
             if hit > 0 and emitting_light > 0:
                 inv_rd = -rd
                 d1 = inv_rd.dot(normal)
                 if d1 > 0.0:
-                    if bounce == 0:
-                        L += attenuation
-                    # else:
-                    #     L += attenuation*d1*beta
+                    L += attenuation*beta
                 break
 
             if hit == 0 or bounce >= depth:
                 break
 
             # direct lighting
-            beta *= InvPi*attenuation*ti.abs(wi.dot(normal))/pdf
             Ld = beta * self.sample_direct_lighting(hit_pos, normal)
             L += Ld
+            beta *= InvPi*attenuation*ti.abs(wi.dot(normal))/pdf
+
             # beta *= attenuation#*ti.abs(wi.dot(normal))
 
             ro = hit_pos
