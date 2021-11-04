@@ -1,8 +1,7 @@
 import time
-
+import cv2
 import numpy as np
 from numpy.lib.function_base import average
-import cv2
 
 import taichi as ti
 
@@ -12,7 +11,7 @@ color_buffer = ti.Vector.field(3, dtype=ti.f32, shape=res)
 count_var = ti.field(ti.i32, shape=(1, ))
 tonemapped_buffer = ti.Vector.field(3, dtype=ti.f32, shape=res)
 
-max_ray_depth = 16
+max_ray_depth = 10
 eps = 1e-4
 inf = 1e10
 fov = 0.8
@@ -497,9 +496,27 @@ def tonemap(accumulated: ti.f32) -> ti.f32:
     mean = sum / (res[0] * res[1])
     var = sum_sq / (res[0] * res[1]) - ti.pow(mean / accumulated, 2.0)
     for i, j in tonemapped_buffer:
-        tonemapped_buffer[i, j] = ti.sqrt(color_buffer[i, j] / mean * 0.6)
+        if i == 500 and j == 500:
+            print(tonemapped_buffer[i, j], color_buffer[i, j])
+        tonemapped_buffer[i, j] = ti.sqrt(color_buffer[i, j]/mean) #ti.sqrt(color_buffer[i, j] / mean * 0.6)
     return var
 
+
+gui = ti.GUI('Cornell Box', res, fast_gui=True)
+gui.fps_limit = 300
+last_t = time.time()
+i = 0
+while gui.running:
+    render()
+    interval = 10
+    if i % interval == 0:
+        var = tonemap(i)
+        print("{:.2f} samples/s ({} iters, var={})".format(
+            interval / (time.time() - last_t), i, var))
+        last_t = time.time()
+        gui.set_image(tonemapped_buffer)
+        gui.show()
+    i += 1
 
 render()
 tonemap(0)

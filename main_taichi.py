@@ -1,16 +1,10 @@
-import sys
 import cv2
-from taichi_glsl.vector import normalize, dot
 from core.tracing import PathTracer
-import taichi as ti
-from mathematics.vec3_taichi import *
 import core.ray_taichi as ray
 from time import time
 from mathematics.intersection_taichi import World, Sphere
-from core.camera_taichi import Camera
 from core.bsdf_taichi import *
 from io_utils.read_tungsten import read_file
-import numpy as np
 import math
 import random
 
@@ -33,13 +27,12 @@ if __name__ == '__main__':
 
     # image data
     image_width, image_height = a_camera.resolution
-    rays = ray.Rays(image_width, image_height)
     pixels = ti.Vector.field(3, dtype=float)
-    sample_count = ti.field(dtype=ti.i32)
-    needs_sample = ti.field(dtype=ti.i32)
+    buffer = ti.Vector.field(3, dtype=float)
+    samples = ti.field(dtype=ti.f32)
+
     ti.root.dense(ti.ij,
-                  (image_width, image_height)).place(pixels, sample_count,
-                                                     needs_sample)
+                  (image_width, image_height)).place(pixels, buffer, samples)
 
     debugging = False
     samples_per_pixel = 16
@@ -68,26 +61,10 @@ if __name__ == '__main__':
     @ti.kernel
     def finish():
         for x, y in pixels:
-            pixels[x, y] = pixels[x, y] / samples_per_pixel
+            buffer[x, y] = ti.sqrt(pixels[x, y] / samples[x, y])
 
     @ti.kernel
-    def finish2():
-        sum = 0.0
-        for i, j in pixels:
-            luma = pixels[i, j][0] * 0.2126 + pixels[i, j][1] * 0.7152 + pixels[i, j][2] * 0.0722
-            sum += luma
-        mean = sum / (image_width * image_height)
-        for i, j in pixels:
-            pixels[i, j] = ti.sqrt(pixels[i, j] / mean * 0.6)
-
-    @ti.kernel
-    def wavefront_initial():
-        for x, y in pixels:
-            sample_count[x, y] = 0
-            needs_sample[x, y] = 1
-
-    @ti.kernel
-    def wavefront_big() -> ti.i32:
+    def render():
         ''' Loops over pixels
             for each pixel:
                 generate ray if needed
@@ -95,12 +72,7 @@ if __name__ == '__main__':
                 if miss or last bounce sample background
             return pixels that hit max samples
         '''
-        num_completed = 0
         for x, y in pixels:
-
-            if sample_count[x, y] == samples_per_pixel:
-                num_completed += 1
-                continue
 
             # gen sample
             depth = max_depth
@@ -110,9 +82,7 @@ if __name__ == '__main__':
 
             color = path_tracer.trace2(ray_org, ray_dir, depth, x, y)
             pixels[x, y] += color
-            sample_count[x, y] += 1
-
-        return num_completed
+            samples[x, y] += 1.0
 
 
     @ti.kernel
@@ -129,18 +99,35 @@ if __name__ == '__main__':
 
 
     num_pixels = image_width * image_height
-    if not debugging:
-        t = time()
-        print('starting big wavefront')
-        wavefront_initial()
-        num_completed = 0
-        while num_completed < num_pixels:
-            num_completed += wavefront_big()
-        finish2()
-        print("completed in", time() - t)
-        ti.imwrite(pixels.to_numpy(), 'out.png')
-        cv2.imshow("t", pixels.to_numpy())
-        cv2.waitKey()
-        cv2.destroyAllWindows()
-    else:
-        debug()
+
+    gui = ti.GUI('Cornell Box', (image_width, image_height), fast_gui=True)
+    gui.fps_limit = 300
+    last_t = time()
+    iteration = 0
+    while gui.running:
+        render()
+        interval = 10
+        if iteration % interval == 0:
+            finish()
+            print("{:.2f} samples/s ({} iters)".format(
+                interval / (time() - last_t), iteration))
+            last_t = time()
+            gui.set_image(buffer)
+            gui.show()
+        iteration += 1
+
+    # if not debugging:
+    #     t = time()
+    #     print('starting big wavefront')
+    #     wavefront_initial()
+    #     num_completed = 0
+    #     while num_completed < num_pixels:
+    #         num_completed += wavefront_big()
+    #     finish2()
+    #     print("completed in", time() - t)
+    #     ti.imwrite(pixels.to_numpy(), 'out.png')
+    #     cv2.imshow("t", pixels.to_numpy())
+    #     cv2.waitKey()
+    #     cv2.destroyAllWindows()
+    # else:
+    #     debug()

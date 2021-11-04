@@ -1,11 +1,9 @@
 from .vec3_taichi import Vector4, Vector
 from .constants import EPS
-from .affine_transformation import to_homogeneous_matrix
 from taichi_glsl.vector import normalize, dot, cross
 from taichi_glsl import mat
 
 import taichi as ti
-import numpy as np
 
 
 @ti.func
