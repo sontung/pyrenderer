@@ -1,6 +1,7 @@
 import cv2
 from core.tracing import PathTracer
 import core.ray_taichi as ray
+from taichi_glsl.scalar import isnan
 from time import time
 from mathematics.intersection_taichi import World, Sphere
 from core.bsdf_taichi import *
@@ -10,7 +11,7 @@ import random
 
 
 # switch to cpu if needed
-ti.init(arch=ti.gpu, debug=True)
+ti.init(arch=ti.gpu)
 # ti.init(arch=ti.cpu, cpu_max_num_threads=1, debug=True)
 
 
@@ -22,13 +23,14 @@ def get_background(dir):
     return (1.0 - t) * WHITE + t * BLUE
 
 
+
 if __name__ == '__main__':
     a_scene, a_camera = read_file("media/cornell-box/scene.json")
 
     # image data
     image_width, image_height = a_camera.resolution
-    pixels = ti.Vector.field(3, dtype=float)
-    buffer = ti.Vector.field(3, dtype=float)
+    pixels = ti.Vector.field(3, dtype=ti.f32)
+    buffer = ti.Vector.field(3, dtype=ti.f32)
     samples = ti.field(dtype=ti.f32)
 
     ti.root.dense(ti.ij,
@@ -57,11 +59,26 @@ if __name__ == '__main__':
     start_attenuation = Vector(1.0, 1.0, 1.0)
     initial = True
     path_tracer = PathTracer(world, max_depth, image_width, image_height)
+    num_pixels = float(image_width * image_height)
 
     @ti.kernel
     def finish():
         for x, y in pixels:
             buffer[x, y] = ti.sqrt(pixels[x, y] / samples[x, y])
+
+
+    @ti.kernel
+    def tonemap():
+        a_sum = 0.0
+        for i, j in pixels:
+            luma = pixels[i, j][0] * 0.2126 + pixels[
+                i, j][1] * 0.7152 + pixels[i, j][2] * 0.0722
+            a_sum += luma/num_pixels
+            if isnan(luma):
+                print(a_sum, luma/image_width/image_height)
+                print(luma, pixels[i, j], i, j)
+        for i, j in buffer:
+            buffer[i, j] = ti.sqrt(pixels[i, j] / a_sum * 0.6)
 
     @ti.kernel
     def render():
@@ -98,8 +115,6 @@ if __name__ == '__main__':
                 print("black color", x, y)
 
 
-    num_pixels = image_width * image_height
-
     gui = ti.GUI('Cornell Box', (image_width, image_height), fast_gui=True)
     gui.fps_limit = 300
     last_t = time()
@@ -108,13 +123,15 @@ if __name__ == '__main__':
         render()
         interval = 10
         if iteration % interval == 0:
-            finish()
-            print("{:.2f} samples/s ({} iters)".format(
-                interval / (time() - last_t), iteration))
+            tonemap()
+            # print("{:.2f} samples/s ({} iters)".format(
+            #     interval / (time() - last_t), iteration))
             last_t = time()
             gui.set_image(buffer)
             gui.show()
         iteration += 1
+        if iteration > 1000:
+            break
 
     # if not debugging:
     #     t = time()

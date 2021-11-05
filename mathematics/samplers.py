@@ -43,4 +43,5 @@ def cosine_sample_hemisphere_convenient(normal_world_space):
     r1, r2, r3, r4 = rotate_z_to(normal_world_space)
     vec = cosine_sample_hemisphere(u)
     vec = rotate_vector(r1, r2, r3, vec)
-    return vec
+    pdf = ti.abs(normal_world_space.dot(vec)) * InvPi
+    return vec, pdf
