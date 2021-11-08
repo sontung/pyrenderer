@@ -3,6 +3,7 @@
 media/
 *.png
 trivial_codes/*
+*.npy
 
 # Byte-compiled / optimized / DLL files
 

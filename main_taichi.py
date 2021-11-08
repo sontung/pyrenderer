@@ -1,28 +1,16 @@
-import cv2
 from core.tracing import PathTracer
-import core.ray_taichi as ray
-from taichi_glsl.scalar import isnan
 from time import time
 from mathematics.intersection_taichi import World, Sphere
 from core.bsdf_taichi import *
 from io_utils.read_tungsten import read_file
+from taichi_glsl.scalar import clamp
 import math
-import random
+import numpy as np
 
 
 # switch to cpu if needed
 ti.init(arch=ti.gpu)
 # ti.init(arch=ti.cpu, cpu_max_num_threads=1, debug=True)
-
-
-@ti.func
-def get_background(dir):
-    ''' Returns the background color for a given direction vector '''
-    unit_direction = dir.normalized()
-    t = 0.5 * (unit_direction[1] + 1.0)
-    return (1.0 - t) * WHITE + t * BLUE
-
-
 
 if __name__ == '__main__':
     a_scene, a_camera = read_file("media/cornell-box/scene.json")
@@ -31,10 +19,11 @@ if __name__ == '__main__':
     image_width, image_height = a_camera.resolution
     pixels = ti.Vector.field(3, dtype=ti.f32)
     buffer = ti.Vector.field(3, dtype=ti.f32)
+    luminances = ti.field(dtype=ti.f32)
     samples = ti.field(dtype=ti.f32)
 
-    ti.root.dense(ti.ij,
-                  (image_width, image_height)).place(pixels, buffer, samples)
+    ti.root.dense(ti.ij, (image_width, image_height)).place(pixels, buffer,
+                                                            samples, luminances)
 
     debugging = False
     samples_per_pixel = 16
@@ -61,24 +50,39 @@ if __name__ == '__main__':
     path_tracer = PathTracer(world, max_depth, image_width, image_height)
     num_pixels = float(image_width * image_height)
 
-    @ti.kernel
-    def finish():
-        for x, y in pixels:
-            buffer[x, y] = ti.sqrt(pixels[x, y] / samples[x, y])
 
+    @ti.kernel
+    def tonemap2():
+        a_sum = 0.0
+        rgb = Vector(0.2126, 0.7152, 0.0722)
+
+        for i, j in pixels:
+            luma = rgb.dot(pixels[i, j])
+            a_sum += luma
+        a_mean = a_sum/num_pixels
+        for i, j in buffer:
+            buffer[i, j] = ti.sqrt(pixels[i, j] / a_mean * 0.6)
 
     @ti.kernel
     def tonemap():
-        a_sum = 0.0
         for i, j in pixels:
-            luma = pixels[i, j][0] * 0.2126 + pixels[
-                i, j][1] * 0.7152 + pixels[i, j][2] * 0.0722
-            a_sum += luma/num_pixels
-            if isnan(luma):
-                print(a_sum, luma/image_width/image_height)
-                print(luma, pixels[i, j], i, j)
-        for i, j in buffer:
-            buffer[i, j] = ti.sqrt(pixels[i, j] / a_sum * 0.6)
+            radiance = pixels[i, j]#/samples[i, j]
+            luminances[i, j] = radiance[0] * 0.2126 + radiance[1] * 0.7152 + radiance[2] * 0.0722
+            # buffer[i, j] = pixels[i, j]/samples[i, j]
+
+
+    def finishing_tonemap():
+        rgb_mat = pixels.to_numpy()
+        lumi_mat = luminances.to_numpy()
+        max_white_l = np.max(lumi_mat)
+        numerator = lumi_mat * (1.0 + (lumi_mat / (max_white_l * max_white_l)))
+        l_new = numerator / (1.0 + lumi_mat)
+        l_scale = l_new/lumi_mat
+        for i in range(3):
+            rgb_mat[:, :, i] = rgb_mat[:, :, i] * l_scale
+        rgb_mat[np.isnan(rgb_mat)] = 0
+        print(f"max, min: {np.max(rgb_mat), np.min(rgb_mat), max_white_l}")
+        buffer.from_numpy(rgb_mat)
 
     @ti.kernel
     def render():
@@ -97,7 +101,7 @@ if __name__ == '__main__':
             v = (y + ti.random()) / (image_height - 1)
             ray_org, ray_dir = cam.gen_ray(u, v)
 
-            color = path_tracer.trace2(ray_org, ray_dir, depth, x, y)
+            color = path_tracer.trace(ray_org, ray_dir, depth, x, y)
             pixels[x, y] += color
             samples[x, y] += 1.0
 
@@ -110,7 +114,7 @@ if __name__ == '__main__':
             u = (x + ti.random()) / (image_width - 1)
             v = (y + ti.random()) / (image_height - 1)
             ray_org, ray_dir = cam.gen_ray(u, v)
-            color = path_tracer.trace2(ray_org, ray_dir, max_depth, x, y)
+            color = path_tracer.trace(ray_org, ray_dir, max_depth, x, y)
             if color[0]+color[1]+color[2] < 0.01:
                 print("black color", x, y)
 
@@ -119,32 +123,23 @@ if __name__ == '__main__':
     gui.fps_limit = 300
     last_t = time()
     iteration = 0
+    interval = 10
+
     while gui.running:
         render()
-        interval = 10
         if iteration % interval == 0:
             tonemap()
-            # print("{:.2f} samples/s ({} iters)".format(
-            #     interval / (time() - last_t), iteration))
+            finishing_tonemap()
+            print("{:.2f} samples/s ({} iterations)".format(interval / (time() - last_t), iteration))
             last_t = time()
             gui.set_image(buffer)
             gui.show()
         iteration += 1
+        if iteration % 100 == 0:
+            np_mat = buffer.to_numpy()
+            np.save("hdr", pixels.to_numpy())
+            np.save("lumi", luminances.to_numpy())
+
+            ti.imwrite(np_mat, 'out.png')
         if iteration > 1000:
             break
-
-    # if not debugging:
-    #     t = time()
-    #     print('starting big wavefront')
-    #     wavefront_initial()
-    #     num_completed = 0
-    #     while num_completed < num_pixels:
-    #         num_completed += wavefront_big()
-    #     finish2()
-    #     print("completed in", time() - t)
-    #     ti.imwrite(pixels.to_numpy(), 'out.png')
-    #     cv2.imshow("t", pixels.to_numpy())
-    #     cv2.waitKey()
-    #     cv2.destroyAllWindows()
-    # else:
-    #     debug()

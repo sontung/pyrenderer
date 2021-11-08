@@ -3,7 +3,7 @@ import trimesh
 import taichi as ti
 from .vec3_taichi import Vector
 from .mat4_taichi import rotate_z_to, rotate_vector
-from .constants import MAX_F, InvPi
+from .constants import MAX_F, InvPi, EPS
 from .intersection_taichi import ray_triangle_hit
 from .bbox import BBox
 from .vec3 import normalize_vector
@@ -96,13 +96,13 @@ class Quad:
         sided = 0
 
         if hit_anything:
-            next_rd, attenuation, pdf = self.bsdf.scatter(rd)
             emit, sided = self.bsdf.emitting_light, self.bsdf.sided
             normal = self.normals_ti[face_id, 0]
             if not sided and normal.dot(-rd) < 0.0:
                 normal = -normal
 
             # rotate
+            next_rd, attenuation, pdf = self.bsdf.scatter(rd)
             r1, r2, r3, r4 = rotate_z_to(normal)
             next_rd = rotate_vector(r1, r2, r3, next_rd)
             pdf = ti.abs(normal.dot(next_rd)) * InvPi
@@ -225,13 +225,13 @@ class Cube:
         sided = 0
 
         if hit_anything:
-            next_rd, attenuation, pdf = self.bsdf.scatter(rd)
             emit, sided = self.bsdf.emitting_light, self.bsdf.sided
             normal = self.normals_ti[face_id, 0]
             if not sided and normal.dot(-rd) < 0.0:
                 normal = -normal
 
             # rotate
+            next_rd, attenuation, pdf = self.bsdf.scatter(rd)
             r1, r2, r3, r4 = rotate_z_to(normal)
             next_rd = rotate_vector(r1, r2, r3, next_rd)
             pdf = ti.abs(normal.dot(next_rd)) * InvPi

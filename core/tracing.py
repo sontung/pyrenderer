@@ -105,9 +105,7 @@ class PathTracer:
             dot1 = dot(normal, w)
             dot2 = dot(n2, w2)
             if dot1 > 0.0 and dot2 > 0.0:
-                f = dot1**2
-                g = dot2**2
-                radiance += emissive*f/(f+g)#/sqrLength(p - p2)
+                radiance += emissive*dot1*dot2/sqrLength(p - p2)
         return radiance
 
     @ti.func
@@ -117,7 +115,7 @@ class PathTracer:
         return ti.abs(normal)
 
     @ti.func
-    def trace2(self, ro, rd, depth, x, y):
+    def trace(self, ro, rd, depth, x, y):
         L = Vector(0.0, 0.0, 0.0)
         beta = Vector(1.0, 1.0, 1.0)
         for bounce in range(depth):
@@ -132,7 +130,10 @@ class PathTracer:
                 inv_rd = -rd
                 d1 = inv_rd.dot(normal)
                 if d1 > 0.0:
-                    L += attenuation*beta
+                    if bounce == 0:
+                        L += attenuation * beta
+                    else:
+                        L += attenuation*beta*d1
                     break
                 else:
                     break
@@ -141,66 +142,12 @@ class PathTracer:
                 break
 
             # direct lighting
-            beta *= InvPi*attenuation * dot_or_zero(normal, wi)/pdf
-            Ld = beta * self.sample_direct_lighting(hit_pos, normal, attenuation)
-            L += Ld
-            if isnan(L[0]) or isnan(L[1]) or isnan(L[2]):
-                print("dr lighting", pdf)
-            # beta *= attenuation#*ti.abs(wi.dot(normal))
+            if pdf > 0.0:
+                beta *= InvPi*attenuation * dot_or_zero(normal, wi)/pdf
+                # Ld = beta * self.sample_direct_lighting(hit_pos, normal, attenuation)
+                Ld = beta * self.sample_direct_lighting2(hit_pos, normal)
+                L += Ld
 
             ro = hit_pos
             rd = wi
         return L
-
-    @ti.func
-    def trace(self, ro, rd, depth, x, y):
-        hit_anything = 0
-        max_bounce = 0
-        for bounce in range(depth):
-            hit, t, hit_pos, normal, front_facing, index, emitting_light, attenuation, scattered_dir = self.world.hit_all(
-                ro, rd)
-            # object_to_world1, object_to_world2, object_to_world3, object_to_world4 = rotate_to(normal)
-            # scattered_dir_world = normalize(
-            #     rotate_vector(object_to_world1, object_to_world2, object_to_world3, scattered_dir))
-            # print(bounce, hit, ro, rd, t, normal, hit_pos)
-            max_bounce += 1
-            if hit > 0:
-                object_to_world1, object_to_world2, object_to_world3, object_to_world4 = rotate_to(normal)
-                scattered_dir = normalize(
-                    rotate_vector(object_to_world1, object_to_world2, object_to_world3, scattered_dir))
-
-                if emitting_light > 0:
-                    hit_anything = 1
-                    if rd.dot(normal) < 0.0:
-                        self.r_field[x, y, bounce] = attenuation
-                        self.e_field[x, y, bounce] = 1.0
-                        break
-                elif bounce < depth-1:
-                    hit_anything = 1
-
-                    # direct lighting
-                    light_sample = self.world.sample_a_light()
-                    dir_towards_light = normalize(light_sample - hit_pos)
-                    dr = self.sample_direct_lighting(hit_pos, dir_towards_light, attenuation)
-                    # dr = self.sample_direct_lighting(hit_pos, scattered_dir_world, attenuation)
-
-                    self.dr_field[x, y, bounce] = dr
-                    self.r_field[x, y, bounce] = attenuation
-                    self.cosine_field[x, y, bounce] = scattered_dir.dot(normal)*invLength(normal)*invLength(scattered_dir)
-
-                ro = hit_pos
-                rd = scattered_dir
-
-            else:
-                break
-
-        if hit_anything > 0:
-            for bounce in range(1, max_bounce):
-                bid = max_bounce - bounce - 1
-                c1 = self.e_field[x, y, bid]*self.r_field[x, y, bid]
-                if self.e_field[x, y, bid] < 0.5:
-                    c1 = self.r_field[x, y, bid]*self.r_field[x, y, bid+1]*self.cosine_field[x, y, bid]
-                    # c1 = self.dr_field[x, y, bid]+idr
-                self.r_field[x, y, bid] = c1
-        return self.r_field[x, y, 0] + self.dr_field[x, y, 0]
-
