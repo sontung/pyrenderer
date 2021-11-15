@@ -124,8 +124,7 @@ class PathTracer:
 
             hit, t, hit_pos, normal, emitting_light, attenuation, wi, pdf = self.world.hit_all(
                 ro, rd, 0.00001, 99999.9)
-            # print(hit, t, ro, rd, wi, attenuation)
-            # print(normal)
+
             if hit > 0 and emitting_light > 0:
                 inv_rd = -rd
                 d1 = inv_rd.dot(normal)
@@ -143,8 +142,7 @@ class PathTracer:
 
             # direct lighting
             if pdf > 0.0:
-                beta *= InvPi*attenuation * dot_or_zero(normal, wi)/pdf
-                # Ld = beta * self.sample_direct_lighting(hit_pos, normal, attenuation)
+                beta *= attenuation * dot_or_zero(normal, wi)/pdf
                 Ld = beta * self.sample_direct_lighting2(hit_pos, normal)
                 L += Ld
 

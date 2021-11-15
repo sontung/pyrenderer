@@ -49,6 +49,7 @@ if __name__ == '__main__':
     initial = True
     path_tracer = PathTracer(world, max_depth, image_width, image_height)
     num_pixels = float(image_width * image_height)
+    spp = 0
 
 
     @ti.kernel
@@ -66,9 +67,8 @@ if __name__ == '__main__':
     @ti.kernel
     def tonemap():
         for i, j in pixels:
-            radiance = pixels[i, j]#/samples[i, j]
+            radiance = pixels[i, j] / samples[0, 0]
             luminances[i, j] = radiance[0] * 0.2126 + radiance[1] * 0.7152 + radiance[2] * 0.0722
-            # buffer[i, j] = pixels[i, j]/samples[i, j]
 
 
     def finishing_tonemap():
@@ -79,10 +79,10 @@ if __name__ == '__main__':
         l_new = numerator / (1.0 + lumi_mat)
         l_scale = l_new/lumi_mat
         for i in range(3):
-            rgb_mat[:, :, i] = rgb_mat[:, :, i] * l_scale
+            rgb_mat[:, :, i] = rgb_mat[:, :, i] * l_scale / samples[0, 0]
         rgb_mat[np.isnan(rgb_mat)] = 0
         print(f"max, min: {np.max(rgb_mat), np.min(rgb_mat), max_white_l}")
-        buffer.from_numpy(rgb_mat)
+        buffer.from_numpy(rgb_mat*255)
 
     @ti.kernel
     def render():
@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
             color = path_tracer.trace(ray_org, ray_dir, depth, x, y)
             pixels[x, y] += color
-            samples[x, y] += 1.0
+            samples[0, 0] += 1.0
 
 
     @ti.kernel
@@ -137,9 +137,6 @@ if __name__ == '__main__':
         iteration += 1
         if iteration % 100 == 0:
             np_mat = buffer.to_numpy()
-            np.save("hdr", pixels.to_numpy())
-            np.save("lumi", luminances.to_numpy())
-
             ti.imwrite(np_mat, 'out.png')
         if iteration > 1000:
             break

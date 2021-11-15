@@ -1,5 +1,5 @@
 import time
-import cv2
+
 import numpy as np
 from numpy.lib.function_base import average
 
@@ -485,15 +485,10 @@ def render():
 
 
 @ti.kernel
-def tonemap():
-    sum = 0.0
-    for i, j in color_buffer:
-        luma = color_buffer[i, j][0] * 0.2126 + color_buffer[
-            i, j][1] * 0.7152 + color_buffer[i, j][2] * 0.0722
-        sum += luma
-    mean = sum / (res[0] * res[1])
+def tonemap(accumulated: ti.f32):
     for i, j in tonemapped_buffer:
-        tonemapped_buffer[i, j] = ti.sqrt(color_buffer[i, j]/mean) #ti.sqrt(color_buffer[i, j] / mean * 0.6)
+        tonemapped_buffer[i, j] = ti.sqrt(color_buffer[i, j] / accumulated *
+                                          100.0)
 
 
 gui = ti.GUI('Cornell Box', res, fast_gui=True)
@@ -504,17 +499,13 @@ while gui.running:
     render()
     interval = 10
     if i % interval == 0:
-        tonemap()
-        print("{:.2f} samples/s ({} iters, var={})".format(
-            interval / (time.time() - last_t), i, 0))
+        tonemap(i)
+        print("{:.2f} samples/s ({} iters)".format(
+            interval / (time.time() - last_t), i))
         last_t = time.time()
         gui.set_image(tonemapped_buffer)
         gui.show()
-    i += 1
+        final_image = tonemapped_buffer.to_numpy()
+        print(f"max, min: {np.max(final_image), np.min(final_image)}")
 
-render()
-tonemap(0)
-ti.imwrite(tonemapped_buffer.to_numpy(), 'out.png')
-cv2.imshow("t", cv2.imread("out.png"))
-cv2.waitKey()
-cv2.destroyAllWindows()
+    i += 1
