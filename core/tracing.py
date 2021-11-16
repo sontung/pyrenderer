@@ -1,12 +1,11 @@
 import numpy as np
 import taichi as ti
 from taichi_glsl.scalar import isnan
-from taichi_glsl.vector import normalize, invLength, dot, sqrLength
+from taichi_glsl.vector import normalize, dot, sqrLength
 from mathematics.vec3_taichi import Vector
-from mathematics.mat4_taichi import rotate_to, rotate_vector, transpose
+from mathematics.samplers import uniform_sample_hemisphere_convenient
 from mathematics.constants import EPS, Pi, InvPi
 from mathematics.samplers import cosine_sample_hemisphere_convenient
-from core.ray import Ray
 import sys
 
 
@@ -141,11 +140,11 @@ class PathTracer:
                 break
 
             # direct lighting
-            if pdf > 0.0:
-                beta *= attenuation * dot_or_zero(normal, wi)/pdf
-                Ld = beta * self.sample_direct_lighting2(hit_pos, normal)
-                L += Ld
+            beta *= attenuation * dot_or_zero(normal, wi)/pdf*InvPi
+            Ld = beta * self.sample_direct_lighting2(hit_pos, normal)
+            L += Ld
 
             ro = hit_pos
             rd = wi
         return L
+

@@ -1,4 +1,4 @@
-from .constants import Pi, PiOver2, PiOver4, InvPi
+from .constants import Pi, PiOver2, PiOver4, InvPi, Inv2Pi
 from .vec3_taichi import Vector
 from .mat4_taichi import rotate_vector, rotate_z_to
 from taichi_glsl.randgen import rand
@@ -45,3 +45,17 @@ def cosine_sample_hemisphere_convenient(normal_world_space):
     vec = rotate_vector(r1, r2, r3, vec)
     pdf = ti.abs(normal_world_space.dot(vec)) * InvPi
     return vec, pdf
+
+
+@ti.func
+def uniform_sample_hemisphere_convenient(normal_world_space):
+    x1 = rand()
+    x2 = rand()
+    cos_theta = x1
+    sin_theta = ti.sqrt(1-cos_theta*cos_theta)
+    cos_phi = ti.cos(2*Pi*x2)
+    sin_phi = ti.sin(2*Pi*x2)
+    vec = Vector(cos_phi*sin_theta, sin_phi*sin_theta, cos_theta)
+    r1, r2, r3, r4 = rotate_z_to(normal_world_space)
+    vec = rotate_vector(r1, r2, r3, vec)
+    return vec, Inv2Pi
