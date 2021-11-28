@@ -54,7 +54,7 @@ class PathTracer:
         # self.cosine_field = ti.field(dtype=ti.f32, shape=(img_w, img_h, depth))
 
     @ti.func
-    def sample_direct_lighting(self, hit_pos, hit_normal, hit_color):
+    def sample_direct_lighting2(self, hit_pos, hit_normal, hit_color):
         p2, n2, light_color = self.world.sample_a_light()
 
         direct_li = ti.Vector([0.0, 0.0, 0.0])
@@ -90,7 +90,7 @@ class PathTracer:
         return direct_li
 
     @ti.func
-    def sample_direct_lighting2(self, p, normal):
+    def sample_direct_lighting(self, p, normal):
         radiance = Vector(0.0, 0.0, 0.0)
         p2, n2, emissive = self.world.sample_a_light()
 
@@ -115,8 +115,10 @@ class PathTracer:
 
     @ti.func
     def trace(self, ro, rd, depth, x, y):
-        L = Vector(0.0, 0.0, 0.0)
+        l_o = Vector(0.0, 0.0, 0.0)
         beta = Vector(1.0, 1.0, 1.0)
+        light_color = Vector(0.9, 0.85, 0.7)
+
         for bounce in range(depth):
             if bounce >= depth:
                 break
@@ -129,9 +131,9 @@ class PathTracer:
                 d1 = inv_rd.dot(normal)
                 if d1 > 0.0:
                     if bounce == 0:
-                        L += attenuation * beta
+                        l_o += light_color * beta
                     else:
-                        L += attenuation*beta*d1
+                        l_o += light_color*beta*d1
                     break
                 else:
                     break
@@ -140,11 +142,15 @@ class PathTracer:
                 break
 
             # direct lighting
-            beta *= attenuation * dot_or_zero(normal, wi)/pdf*InvPi
-            Ld = beta * self.sample_direct_lighting2(hit_pos, normal)
-            L += Ld
+            new_beta = attenuation * dot_or_zero(normal, wi)/pdf*InvPi
+            if isnan(new_beta[0]) or isnan(new_beta[1]) or isnan(new_beta[2]):
+                pdf = 1e-4
+                new_beta = attenuation * dot_or_zero(normal, wi) / pdf * InvPi
+            beta *= new_beta
+            l_d = beta * self.sample_direct_lighting(hit_pos, normal)
+            l_o += l_d
 
             ro = hit_pos
             rd = wi
-        return L
+        return l_o
 

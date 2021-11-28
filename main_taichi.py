@@ -26,7 +26,7 @@ if __name__ == '__main__':
                                                             samples, luminances)
 
     debugging = False
-    samples_per_pixel = 16
+    samples_per_pixel = 64
     if debugging:
         samples_per_pixel = 1
         import random
@@ -34,7 +34,7 @@ if __name__ == '__main__':
         yc = random.randint(0, image_height)
         print("debugging with", xc, yc)
 
-    max_depth = 32
+    max_depth = 16
 
     # world
     R = math.cos(math.pi / 4.0)
