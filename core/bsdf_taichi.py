@@ -1,6 +1,6 @@
 import taichi as ti
 from taichi_glsl.vector import reflect
-from mathematics.vec3_taichi import *
+from ..mathematics.vec3_taichi import *
 
 
 @ti.func

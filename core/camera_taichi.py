@@ -2,7 +2,7 @@ import taichi as ti
 from taichi_glsl.vector import normalize, dot
 from taichi_glsl.randgen import rand
 from math import tan, radians
-from mathematics.vec3_taichi import *
+from ..mathematics.vec3_taichi import *
 import math
 
 

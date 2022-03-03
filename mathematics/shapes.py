@@ -241,3 +241,65 @@ class Cube:
     @property
     def bounding_box(self):
         return self.bounds.min_coord, self.bounds.max_coord
+
+
+@ti.data_oriented
+class Triangle:
+    def __init__(self, vertex0, vertex1, vertex2):
+        self.id = -1
+        self.vertices = [vertex0, vertex1, vertex2]
+        self.bounds = BBox(None, None)
+        self.bounds.from_vertices(self.vertices)
+        self.center = self.bounds.center()
+
+        self.vertices_ti = ti.Vector.field(n=3, dtype=ti.f32, shape=(3, 1))
+        self.vertices_ti[0, 0] = vertex0
+        self.vertices_ti[1, 0] = vertex1
+        self.vertices_ti[2, 0] = vertex2
+
+        # triangle = [0, 1, 2]
+        # e1 = self.vertices[triangle[1]]-self.vertices[triangle[0]]
+        # e2 = self.vertices[triangle[2]]-self.vertices[triangle[0]]
+        # self.normal_vectors = -normalize_vector(np.cross(e1, e2))
+        # self.normals_ti = ti.Vector.field(n=3, dtype=ti.f32, shape=(1, 1))
+        # self.normals_ti[0, 0] = self.normal_vectors
+
+    @ti.func
+    def hit(self, ro, rd, t0, t1):
+        hit, t = ray_triangle_hit(self.vertices_ti[0, 0], self.vertices_ti[1, 0], self.vertices_ti[2, 0],
+                                  ro, rd, t0, t1)
+        return hit, t, normal, next_rd, attenuation, pdf, emit, sided
+
+    @property
+    def bounding_box(self):
+        return self.bounds.min_coord, self.bounds.max_coord
+
+
+@ti.data_oriented
+class TriangleSoup:
+    def __init__(self, vertices, faces):
+        self.vertices_ti = ti.field(ti.f64, vertices.shape)
+        self.faces_ti = ti.field(ti.int32, faces.shape)
+        self.vertices_ti.from_numpy(vertices)
+        self.faces_ti.from_numpy(faces)
+        self.faces = faces
+
+    @ti.func
+    def hit(self, ro, rd, t0, t1) -> ti.i8:
+        res = 0
+        for _ in range(1):
+            for i in range(self.faces.shape[0]):
+                v0 = Vector(self.vertices_ti[self.faces_ti[i, 0], 0],
+                            self.vertices_ti[self.faces_ti[i, 0], 1],
+                            self.vertices_ti[self.faces_ti[i, 0], 2])
+                v1 = Vector(self.vertices_ti[self.faces_ti[i, 1], 0],
+                            self.vertices_ti[self.faces_ti[i, 1], 1],
+                            self.vertices_ti[self.faces_ti[i, 1], 2])
+                v2 = Vector(self.vertices_ti[self.faces_ti[i, 2], 0],
+                            self.vertices_ti[self.faces_ti[i, 2], 1],
+                            self.vertices_ti[self.faces_ti[i, 2], 2])
+                hit, t = ray_triangle_hit(v0, v1, v2, ro, rd, t0, t1)
+                if hit > 0:
+                    res = 1
+                    break
+        return res

@@ -3,9 +3,9 @@ import random
 import trimesh
 import numpy as np
 import open3d as o3d
-from accelerators.bvh import BVH
-from accelerators.aggregator import Aggregator
-from mathematics.constants import MAX_F
+from ..accelerators.bvh import BVH
+from ..accelerators.aggregator import Aggregator
+from ..mathematics.constants import MAX_F
 
 
 class Scene:

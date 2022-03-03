@@ -1,9 +1,9 @@
 from pyrr.matrix44 import create_look_at
 from random import random
 from .ray import Ray
-from mathematics.vec3 import normalize_vector, to_homogeneous_vector
+from ..mathematics.vec3 import normalize_vector, to_homogeneous_vector
 from .camera_taichi import Camera as CameraTaichi
-from mathematics.vec3_taichi import *
+from ..mathematics.vec3_taichi import *
 
 from math import tan, radians
 import numpy as np

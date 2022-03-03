@@ -1,5 +1,5 @@
-from mathematics.bbox import BBox
-from mathematics.constants import MAX_F
+from ..mathematics.bbox import BBox
+from ..mathematics.constants import MAX_F
 import numpy as np
 
 

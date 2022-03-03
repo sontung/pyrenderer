@@ -79,13 +79,13 @@ if __name__ == '__main__':
 
     @ti.kernel
     def render():
-        ''' Loops over pixels
+        """ Loops over pixels
             for each pixel:
                 generate ray if needed
                 intersect scene with ray
                 if miss or last bounce sample background
             return pixels that hit max samples
-        '''
+        """
         for x, y in pixels:
 
             # gen sample

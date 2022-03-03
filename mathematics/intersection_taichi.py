@@ -1,12 +1,9 @@
-import taichi as ti
 from .vec3_taichi import *
-import core.ray_taichi as ray
-from core.bsdf_taichi import Materials
-import random
-import numpy as np
-from math import isclose
+from ..core import ray_taichi as ray
+from ..core.bsdf_taichi import Materials
+
 from .constants import MAX_F, EPS
-from accelerators.bvh_taichi import BVH
+from ..accelerators.bvh_taichi import BVH
 from taichi_glsl.randgen import randInt
 
 

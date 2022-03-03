@@ -1,7 +1,6 @@
 import taichi as ti
 import copy
-import random
-from mathematics.constants import GAMMA2_3, EPS, MAX_F
+from ..mathematics.constants import GAMMA2_3
 
 
 def surrounding_box(box1, box2):
@@ -57,7 +56,7 @@ def sort_obj_list(obj_list):
 
 
 class BVHNode:
-    ''' A bvh node for constructing the bvh tree.  Note this is done on CPU '''
+    """ A bvh node for constructing the bvh tree.  Note this is done on CPU """
 
     left = None
     right = None
@@ -79,7 +78,6 @@ class BVHNode:
             self.total = 1
         else:
             # set left and right child and this bbox is the sum of two
-            sorted_list = sort_obj_list(obj_list)
             mid = int(span / 2)
             self.left = BVHNode(obj_list[:mid], self)
             self.right = BVHNode(obj_list[mid:], self)
@@ -108,8 +106,8 @@ class BVHNode:
 
 @ti.data_oriented
 class BVH:
-    ''' The BVH class takes a list of objects and creates a bvh from them.
-        The bvh structure contains a "next" pointer for walking the tree. '''
+    """ The BVH class takes a list of objects and creates a bvh from them.
+        The bvh structure contains a "next" pointer for walking the tree. """
     def __init__(self, object_list):
         self.root = BVHNode(object_list, None)
 
@@ -126,7 +124,7 @@ class BVH:
                                          self.bvh_min, self.bvh_max)
 
     def build(self):
-        ''' building function. Compress the object list to structure'''
+        """ building function. Compress the object list to structure"""
         i = 0
 
         # first walk tree and give ids
@@ -164,12 +162,12 @@ class BVH:
 
     @ti.func
     def get_id(self, bvh_id):
-        ''' Get the obj id for a bvh node '''
+        """ Get the obj id for a bvh node """
         return self.bvh_obj_id[bvh_id]
 
     @ti.func
     def hit_aabb(self, bvh_id, ray_origin, ray_direction, t0, t1):
-        ''' Use the slab method to do aabb test'''
+        """ Use the slab method to do aabb test"""
         intersect = 1
         min_aabb = self.bvh_min[bvh_id]
         max_aabb = self.bvh_max[bvh_id]
@@ -193,5 +191,5 @@ class BVH:
 
     @ti.func
     def get_full_id(self, i):
-        ''' Gets the obj id, left_id, right_id, next_id for a bvh node '''
+        """ Gets the obj id, left_id, right_id, next_id for a bvh node """
         return self.bvh_obj_id[i], self.bvh_left_id[i], self.bvh_right_id[i], self.bvh_next_id[i]
